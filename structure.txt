@@ -1,0 +1,41 @@
+dungeon_quest/
+  venv/
+  client/
+    __pycache__
+    config.py
+    main.py              # entry point, pygame init, card-layout equivalent
+    screens/
+      login_screen.py
+      register_screen.py
+      class_select_screen.py
+      menu_screen.py
+      game_screen.py
+      inventory_screen.py
+      profile_screen.py
+    entities/
+      player.py
+      monster.py
+      projectile.py
+    net/
+      client_socket.py    # gameclient.java equivalent
+    assets/               # sprites, sounds
+  server/
+    server.py             # accept loop
+    client_handler.py      # per-connection thread
+    db.py                  # sqlite wrapper
+    mapgen/
+      cellular_automata.py
+      genetic_algorithm.py
+      pathfinding.py        # BFS/A*
+    monster_ai/
+      fsm.py
+      decision_tree.py
+      kmeans.py
+      apriori.py
+      markov.py
+      qlearning.py
+    protocol.py            # shared message tag constants both sides import conceptually
+  shared/
+    tilemap.py             # tile type constants (0=wall,1=stone,2=ground,3=water,4=?)
+  requirement.txt
+  structure.txt
