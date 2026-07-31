@@ -1,0 +1,20 @@
+{
+  "players": [
+    {
+      "player_id": "BHAVISHE_001",
+      "player_name": "bhavishek",
+      "player_class": null,
+      "items": [],
+      "equipped": [
+        0,
+        0,
+        0
+      ],
+      "profile": {
+        "level": 1,
+        "monster_kills": {},
+        "skill_usage": {}
+      }
+    }
+  ]
+}
