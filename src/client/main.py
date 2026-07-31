@@ -1,63 +1,72 @@
-import pygame as pg
 import sys
-from config import *
+import pygame as pg
+
+import config
+from session import ClientSession
+from screens import ScreenManager
+from screens.setup_screen import SetupScreen
+from screens.menu_screen import MenuScreen
+from screens.game_screen import GameScreen
+from screens.inventory_screen import InventoryScreen
+from screens.profile_screen import ProfileScreen
+from screens.pause_screen import PauseScreen
 
 
-class DungeonQuestGame:
-    
+class DungeonQuest:
     def __init__(self):
         pg.init()
-        pg.display.set_caption("Dungeon Quest")
-        
-        self.screen = pg.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
+        pg.display.set_caption(config.WINDOW_TITLE)
+
+        self.screen = pg.display.set_mode((config.SCREEN_WIDTH, config.SCREEN_HEIGHT))
         self.clock = pg.time.Clock()
-        
-        # Player as rectangle
-        self.player_x = PLAYER_START_X
-        self.player_y = PLAYER_START_Y
-        self.player_size = TILE_SIZE   # Make player same size as tiles
-        self.player_speed = PLAYER_DEFAULT_SPEED
-        
         self.running = True
 
-    def handle_input(self):
-        for event in pg.event.get():
-            if event.type == pg.QUIT:
-                self.running = False
-            elif event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
-                self.running = False
+        # Shared across every screen for the lifetime of the process.
+        self.client = ClientSession()
+        self.game_state = {
+            "player_id": None,
+            "player_name": None,
+            "player_class": None,
+            "items": [],
+            "equipped": [0, 0, 0],
+            "profile": {
+                "level": 1,
+                "monster_kills": {},
+                "skill_usage": {},
+            },
+        }
 
-        keys = pg.key.get_pressed()
-        
-        if keys[pg.K_w] or keys[pg.K_UP]:
-            self.player_y -= self.player_speed
-        if keys[pg.K_s] or keys[pg.K_DOWN]:
-            self.player_y += self.player_speed
-        if keys[pg.K_a] or keys[pg.K_LEFT]:
-            self.player_x -= self.player_speed
-        if keys[pg.K_d] or keys[pg.K_RIGHT]:
-            self.player_x += self.player_speed
+        self.manager = ScreenManager(self.client, self.game_state)
+        self.manager.register(config.SCREEN_SETUP, SetupScreen)
+        self.manager.register(config.SCREEN_MENU, MenuScreen)
+        self.manager.register(config.SCREEN_GAME, GameScreen)
+        self.manager.register(config.SCREEN_INVENTORY, InventoryScreen)
+        self.manager.register(config.SCREEN_PROFILE, ProfileScreen)
+        self.manager.register(config.SCREEN_PAUSE, PauseScreen)
 
-    def draw(self):
-        self.screen.fill(color=(255, 255, 255)) 
-        
-        player_rect = pg.Rect(self.player_x, self.player_y, self.player_size, self.player_size)
-        pg.draw.rect(self.screen, (0, 0, 255), player_rect)
-        
-        pg.display.flip()
+        self.manager.switch_to(config.SCREEN_SETUP)
 
     def run(self):
         while self.running:
-            self.handle_input()
-            self.draw()
-            self.clock.tick(FPS)
+            dt = self.clock.tick(config.FPS) / 1000.0
 
+            for event in pg.event.get():
+                if event.type == pg.QUIT:
+                    self.running = False
+                    continue
+                self.manager.handle_event(event)
+
+            self.manager.update(dt)
+            self.manager.draw(self.screen)
+            pg.display.flip()
+
+        self.client.disconnect()
         pg.quit()
         sys.exit()
 
 
 def main():
-    game = DungeonQuestGame()
+    game = DungeonQuest()
     game.run()
 
 
