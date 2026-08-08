@@ -78,11 +78,17 @@ PLAYER_DEFAULT_STAMINA_REGEN_RATE = 0.1  # per second
 PLAYER_DEFAULT_MANA_REGEN_RATE = 0.1     # per second
 PLAYER_DEFAULT_POWER_REGEN_RATE = 0.1    # per second
 PLAYER_DEFAULT_ATTACK_RANGE = 75
+PLAYER_COLLISION_SCALE = 0.38
+PLAYER_LAVA_SPEED_MULTIPLIER = 0.55
+PLAYER_TRAP_SPEED_MULTIPLIER = 0.70
+PLAYER_LAVA_LIFE_DRAIN_PER_SEC = 9
+PLAYER_TRAP_LIFE_DRAIN_PER_SEC = 4
 
 # Walk/run: Shift+WASD run multiplier (per project plan)
 PLAYER_WALK_SPEED_MULTIPLIER = 1.0
 PLAYER_RUN_SPEED_MULTIPLIER = 1.8
 PLAYER_RUN_STAMINA_DRAIN_PER_SEC = 8
+PLAYER_STAMINA_REGEN_PER_SEC = 4
 
 # ---------------- Per-class stat tables ----------------
 # One dict per selectable class. class_select_screen.py reads this directly

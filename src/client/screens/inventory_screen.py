@@ -23,9 +23,9 @@ class InventoryScreen:
         self.label_font = pg.font.SysFont(config.FONT_NAME, config.FONT_SIZE_MEDIUM)
         self.small_font = pg.font.SysFont(config.FONT_NAME, config.FONT_SIZE_SMALL)
 
-        self.back_button = Button(
+        self.resume_button = Button(
             (config.SCREEN_WIDTH // 2 - 130, config.SCREEN_HEIGHT - 70, 260, 46),
-            "Back to Menu", on_click=lambda: self.manager.switch_to(config.SCREEN_MENU),
+            "Resume", on_click=lambda: self.manager.switch_to(config.SCREEN_GAME, resumed=True),
             font=self.label_font)
 
         self.slot_rects = [pg.Rect(60 + i * 170, 60, 150, 130) for i in range(3)]
@@ -41,7 +41,7 @@ class InventoryScreen:
     def handle_event(self, event):
         if event.type == pg.QUIT:
             sys.exit(0)
-        self.back_button.handle_event(event)
+        self.resume_button.handle_event(event)
 
     def update(self, dt):
         self.client.poll_events()
@@ -83,4 +83,4 @@ class InventoryScreen:
                            (row_rect.right - 60, row_rect.y + 16),
                            font=self.small_font, color=config.COLOR_WHITE)
 
-        self.back_button.draw(surface)
+        self.resume_button.draw(surface)

@@ -1,29 +1,28 @@
 import math
 import sys
+import secrets
 from pathlib import Path
 
 import pygame as pg
 
-# Make the src/ root importable so the shared map generator can be loaded.
+# Make both src/ and src/client importable so shared and client packages load reliably.
+CLIENT_DIR = Path(__file__).resolve().parents[1]
 BASE_DIR = Path(__file__).resolve().parents[2]
+if str(CLIENT_DIR) not in sys.path:
+    sys.path.insert(0, str(CLIENT_DIR))
 if str(BASE_DIR) not in sys.path:
     sys.path.insert(0, str(BASE_DIR))
 
 import config
 from entities.player import Player
+from gameplay.inventory import add_item, consume_item, count_item, label_for_kind
+from entities.monster1 import Monster1
+from entities.monster2 import Monster2
+from entities.monster3 import Monster3
+from renderers.world_renderer import WorldRenderer
 from screens import Screen
 from ui import draw_label
-from shared.tilemap import (
-    TILE_GROUND,
-    TILE_KEY,
-    TILE_POTION,
-    TILE_POWER,
-    TILE_STONE,
-    TILE_TREASURE,
-    TILE_WALL,
-    TILE_WATER,
-    generate_map,
-)
+from shared.mapgen import TILE_BASIC_SCROLL, TILE_FLOOR, TILE_KEY, TILE_LAVA, TILE_RARE_SCROLL, TILE_TREASURE, TILE_TRAP, TILE_WALL, generate_map
 
 
 class GameScreen(Screen):
@@ -34,21 +33,38 @@ class GameScreen(Screen):
 
         self.hud_font = pg.font.SysFont(config.FONT_NAME, config.FONT_SIZE_SMALL)
         self.tile_size = max(32, config.TILE_SIZE - 16)
-        self.map_width = 100
-        self.map_height = 80
+        self.elapsed = 0.0
 
         self.player = Player(game_state)
         self.projectiles = []
         self.bullet_image = self._load_bullet_sprite()
-        self.tile_images = self._load_tile_images()
-        self.world = generate_map(
-            self.map_width,
-            self.map_height,
-            profile=self.game_state.get("profile", {}),
-            seed=self.game_state.get("player_id"),
-        )
-        self.player.world_x = self.world.player_spawn[1] * self.tile_size
-        self.player.world_y = self.world.player_spawn[0] * self.tile_size
+        self.world = None
+        self.monsters = []
+        self.renderer = WorldRenderer(self.tile_size)
+
+    def on_enter(self, **kwargs):
+        resumed = bool(kwargs.get("resumed", False))
+        if not resumed or self.world is None:
+            self._generate_new_world()
+        self.projectiles.clear()
+
+    def _generate_new_world(self):
+        profile = self.game_state.get("profile", {})
+        self.world = generate_map(profile=profile, seed=secrets.randbits(64))
+        class_key = self.game_state.get("player_class", config.DEFAULT_CLASS)
+        class_stats = config.PLAYER_CLASSES.get(class_key, {})
+        self.player.apply_class_stats(class_stats)
+        self.player.reset_stats(class_stats)
+        self.game_state["health"] = self.player.health
+        self.game_state["stamina"] = self.player.stamina
+        self.monsters = [self._monster_from_data(monster) for monster in self.world.monsters]
+        self.world.monsters = self.monsters
+        self.world.spawn_schedule = [
+            {"spawn_at": event["spawn_at"], "monster": self._monster_from_data(event["monster"])}
+            for event in self.world.spawn_schedule
+        ]
+        self.player.world_x = self.world.player_spawn[1] * self.tile_size + self.tile_size // 2 - self.player.size // 2
+        self.player.world_y = self.world.player_spawn[0] * self.tile_size + self.tile_size // 2 - self.player.size // 2
 
     def handle_event(self, event):
         if event.type == pg.QUIT:
@@ -58,6 +74,8 @@ class GameScreen(Screen):
                 self.manager.switch_to(config.SCREEN_PAUSE)
             if event.key == pg.K_e:
                 self.manager.switch_to(config.SCREEN_INVENTORY)
+            if event.key == pg.K_SPACE:
+                self._resolve_world_interactions()
 
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pg.mouse.get_pos()
@@ -71,17 +89,28 @@ class GameScreen(Screen):
             self._create_projectile(start_x, start_y, dx, dy)
 
     def update(self, dt):
+        if self.world is None:
+            self._generate_new_world()
+        self.elapsed += dt
         keys = pg.key.get_pressed()
         class_key = self.game_state.get("player_class", config.DEFAULT_CLASS)
         stats = config.PLAYER_CLASSES.get(class_key, {})
         self.player.speed = stats.get("speed", config.PLAYER_DEFAULT_SPEED)
+        self.player.apply_class_stats(stats)
 
+        moving_input = any((keys[pg.K_w], keys[pg.K_UP], keys[pg.K_s], keys[pg.K_DOWN], keys[pg.K_a], keys[pg.K_LEFT], keys[pg.K_d], keys[pg.K_RIGHT]))
         # Run multiplier
-        if keys[pg.K_LSHIFT] or keys[pg.K_RSHIFT]:
+        sprinting = moving_input and (keys[pg.K_LSHIFT] or keys[pg.K_RSHIFT]) and self.player.stamina > 0
+        if sprinting:
             self.player.speed *= config.PLAYER_RUN_SPEED_MULTIPLIER
 
-        self.player.update(dt, keys)
+        terrain_multiplier = self._terrain_speed_multiplier()
+        self.player.speed *= terrain_multiplier
+
+        self.player.update(dt, keys, can_move=self._can_move_player)
         self.world.update(dt)
+        self._sync_monsters()
+        self._apply_survival_effects(dt, sprinting)
         self.client.poll_events()
 
         # Update bullets
@@ -93,38 +122,15 @@ class GameScreen(Screen):
                 self.projectiles.remove(p)
 
     def draw(self, surface):
+        if self.world is None:
+            self._generate_new_world()
         surface.fill((10, 10, 18))
 
         # === CAMERA CENTER ===
         cam_x = self.player.world_x - config.SCREEN_WIDTH // 2 + self.player.size // 2
         cam_y = self.player.world_y - config.SCREEN_HEIGHT // 2 + self.player.size // 2
 
-        tile_size = self.tile_size
-        start_col = max(0, int(cam_x // tile_size) - 1)
-        start_row = max(0, int(cam_y // tile_size) - 1)
-        end_col = min(self.world.width, start_col + (config.SCREEN_WIDTH // tile_size) + 3)
-        end_row = min(self.world.height, start_row + (config.SCREEN_HEIGHT // tile_size) + 3)
-
-        for row in range(start_row, end_row):
-            for col in range(start_col, end_col):
-                screen_x = col * tile_size - cam_x
-                screen_y = row * tile_size - cam_y
-                tile_id = self.world.tile_at(row, col)
-                self._draw_tile(surface, tile_id, pg.Rect(screen_x, screen_y, tile_size, tile_size))
-
-        # Door to the next level
-        self._draw_door(surface, cam_x, cam_y)
-
-        # Treasure chest
-        self._draw_treasure(surface, cam_x, cam_y)
-
-        # Items generated by BFS validation
-        for item in self.world.items:
-            self._draw_item(surface, item, cam_x, cam_y)
-
-        # Blue-circle monsters
-        for monster in self.world.monsters:
-            self._draw_monster(surface, monster, cam_x, cam_y)
+        self.renderer.draw(surface, self.world, cam_x, cam_y, self.elapsed)
 
         # Draw Player (centered)
         self.player.draw(surface)
@@ -142,6 +148,13 @@ class GameScreen(Screen):
             "WASD/Arrows: Move | Shift: Run | Mouse: Shoot | P: Pause | E: Inventory",
             (10, config.SCREEN_HEIGHT - 30),
             font=self.hud_font, color=config.COLOR_GRAY)
+        draw_label(surface, f"HP {int(self.player.health)}/{int(self.player.max_health)}", (16, 12), font=self.hud_font, color=config.COLOR_RED)
+        draw_label(surface, f"STA {int(self.player.stamina)}/{int(self.player.max_stamina)}", (16, 32), font=self.hud_font, color=config.COLOR_CYAN)
+
+    def on_exit(self):
+        self.game_state["health"] = self.player.health
+        self.game_state["stamina"] = self.player.stamina
+        self.client.commit_game_state(self.game_state)
 
     def _create_projectile(self, start_x, start_y, dx, dy):
         length = math.hypot(dx, dy) or 1
@@ -163,98 +176,140 @@ class GameScreen(Screen):
             pg.draw.circle(image, (255, 220, 90), (8, 8), 6)
         return pg.transform.scale(image, (12, 12))
 
-    def _load_tile_images(self):
-        tile_root = Path(__file__).resolve().parent.parent.parent / "shared" / "tiles" / "environment"
-        sprite_paths = {
-            TILE_GROUND: tile_root / "ground.png",
-            TILE_WALL: tile_root / "wall.png",
-            TILE_STONE: tile_root / "bigrock.png",
-            TILE_WATER: tile_root / "water.png",
-            TILE_KEY: tile_root / "keys_1.png",
-            TILE_POTION: tile_root / "keys_2.png",
-            TILE_POWER: tile_root / "keys_2.png",
-        }
+    def _can_move_player(self, next_x, next_y):
+        future_rect = self.player.get_collision_rect(next_x, next_y)
 
-        fallback_colors = {
-            TILE_GROUND: (54, 58, 44),
-            TILE_WALL: (92, 88, 82),
-            TILE_STONE: (62, 62, 68),
-            TILE_WATER: (40, 95, 160),
-            TILE_KEY: (210, 190, 50),
-            TILE_POTION: (70, 180, 110),
-            TILE_POWER: (180, 90, 210),
-        }
+        for monster in self.monsters:
+            if future_rect.colliderect(monster.rect):
+                return False
 
-        images = {}
-        for tile_id, path in sprite_paths.items():
-            try:
-                image = pg.image.load(str(path)).convert_alpha()
-                images[tile_id] = pg.transform.scale(image, (self.tile_size, self.tile_size))
-            except Exception:
-                surface = pg.Surface((self.tile_size, self.tile_size), pg.SRCALPHA)
-                surface.fill(fallback_colors[tile_id])
-                images[tile_id] = surface
+        corners = [
+            (future_rect.left, future_rect.top),
+            (future_rect.right - 1, future_rect.top),
+            (future_rect.left, future_rect.bottom - 1),
+            (future_rect.right - 1, future_rect.bottom - 1),
+        ]
 
-        return images
+        for corner_x, corner_y in corners:
+            row = int(corner_y // self.tile_size)
+            col = int(corner_x // self.tile_size)
+            if self.world.tile_at(row, col) == TILE_WALL:
+                return False
 
-    def _draw_tile(self, surface, tile_id, rect):
-        image = self.tile_images.get(tile_id)
-        if tile_id == TILE_TREASURE:
-            pg.draw.rect(surface, (170, 35, 35), rect.inflate(-4, -4), border_radius=5)
-            pg.draw.rect(surface, (245, 220, 120), rect.inflate(-8, -8), 2, border_radius=4)
+            door_row = int(self.world.door["row"])
+            door_col = int(self.world.door["col"])
+            if self.world.door.get("state") != "open" and row == door_row and col == door_col:
+                return False
+
+        return True
+
+    def _resolve_world_interactions(self):
+        center_row, center_col = self._player_center_tile()
+        self._collect_tile_items(center_row, center_col)
+        self._open_door_if_possible(center_row, center_col)
+        self._open_treasures_if_possible(center_row, center_col)
+
+    def _collect_tile_items(self, center_row, center_col):
+        for key in self.world.keys:
+            if key.get("collected"):
+                continue
+            if not self._is_touching_tile(key["row"], key["col"]):
+                continue
+
+            key["collected"] = True
+            self.world.set_tile(key["row"], key["col"], TILE_FLOOR)
+            add_item(self.game_state.setdefault("items", []), key["kind"], label_for_kind(key["kind"]), 1)
+
+        for scroll in self.world.scrolls:
+            if scroll.get("collected"):
+                continue
+            if not self._is_touching_tile(scroll["row"], scroll["col"]):
+                continue
+
+            scroll["collected"] = True
+            self.world.set_tile(scroll["row"], scroll["col"], TILE_FLOOR)
+            add_item(self.game_state.setdefault("items", []), scroll["kind"], label_for_kind(scroll["kind"]), 1)
+
+    def _open_door_if_possible(self, center_row, center_col):
+        if self.world.door.get("state") == "open":
             return
 
-        if image is not None:
-            surface.blit(image, rect)
-            if tile_id == TILE_KEY:
-                pg.draw.circle(surface, (255, 230, 90), rect.center, max(3, rect.width // 5))
-            elif tile_id == TILE_POTION:
-                pg.draw.circle(surface, (80, 220, 120), rect.center, max(3, rect.width // 5))
-            elif tile_id == TILE_POWER:
-                pg.draw.circle(surface, (200, 110, 255), rect.center, max(3, rect.width // 5))
+        door_row = int(self.world.door["row"])
+        door_col = int(self.world.door["col"])
+        if not self._is_touching_tile(door_row, door_col):
+            return
+
+        if count_item(self.game_state.setdefault("items", []), "door_key") <= 0:
+            return
+
+        if consume_item(self.game_state["items"], "door_key", 1):
+            self.world.door["state"] = "open"
+
+    def _open_treasures_if_possible(self, center_row, center_col):
+        for treasure in self.world.treasures:
+            if treasure.get("state") == "open":
+                continue
+            if not self._is_touching_tile(treasure["row"], treasure["col"]):
+                continue
+
+            required_key = treasure["required_key"]
+            if count_item(self.game_state.setdefault("items", []), required_key) <= 0:
+                continue
+
+            if consume_item(self.game_state["items"], required_key, 1):
+                treasure["state"] = "open"
+                self.world.set_tile(treasure["row"], treasure["col"], TILE_FLOOR)
+                reward = treasure.get("reward_item")
+                if reward:
+                    add_item(self.game_state["items"], reward["id"], reward["name"], int(reward.get("quantity", 1)))
+
+    def _player_center_tile(self):
+        center_x = self.player.world_x + self.player.size / 2
+        center_y = self.player.world_y + self.player.size / 2
+        return int(center_y // self.tile_size), int(center_x // self.tile_size)
+
+    def _monster_from_data(self, monster_data):
+        kind = monster_data.get("kind", "monster1")
+        if kind == "monster2":
+            return Monster2(monster_data, self.tile_size)
+        if kind == "monster3":
+            return Monster3(monster_data, self.tile_size)
+        return Monster1(monster_data, self.tile_size)
+
+    def _sync_monsters(self):
+        for monster in self.monsters:
+            monster.sync_rect()
+
+    def _terrain_speed_multiplier(self):
+        center_row, center_col = self._player_center_tile()
+        tile_id = self.world.tile_at(center_row, center_col)
+        if tile_id == TILE_LAVA:
+            return config.PLAYER_LAVA_SPEED_MULTIPLIER
+        if tile_id == TILE_TRAP:
+            return config.PLAYER_TRAP_SPEED_MULTIPLIER
+        return 1.0
+
+    def _apply_survival_effects(self, dt, sprinting):
+        center_row, center_col = self._player_center_tile()
+        tile_id = self.world.tile_at(center_row, center_col)
+
+        if tile_id == TILE_LAVA:
+            self.player.health = max(0, self.player.health - config.PLAYER_LAVA_LIFE_DRAIN_PER_SEC * dt)
+        elif tile_id == TILE_TRAP:
+            self.player.health = max(0, self.player.health - config.PLAYER_TRAP_LIFE_DRAIN_PER_SEC * dt)
+
+        if sprinting:
+            self.player.stamina = max(0, self.player.stamina - config.PLAYER_RUN_STAMINA_DRAIN_PER_SEC * dt)
         else:
-            pg.draw.rect(surface, (45, 45, 35), rect)
+            self.player.stamina = min(self.player.max_stamina, self.player.stamina + config.PLAYER_STAMINA_REGEN_PER_SEC * dt)
 
-    def _draw_treasure(self, surface, cam_x, cam_y):
-        row, col = self.world.treasure_position
-        x = col * self.tile_size - cam_x
-        y = row * self.tile_size - cam_y
-        rect = pg.Rect(x, y, self.tile_size, self.tile_size)
-        pg.draw.rect(surface, (190, 40, 40), rect.inflate(-6, -6), border_radius=4)
-        pg.draw.rect(surface, (255, 220, 110), rect.inflate(-12, -12), 2, border_radius=3)
+        self.game_state["health"] = self.player.health
+        self.game_state["stamina"] = self.player.stamina
 
-    def _draw_door(self, surface, cam_x, cam_y):
-        row, col = self.world.door_position
-        x = col * self.tile_size - cam_x
-        y = row * self.tile_size - cam_y
-        rect = pg.Rect(x + 8, y + 6, self.tile_size - 16, self.tile_size - 12)
-        pg.draw.rect(surface, (145, 110, 55), rect, border_radius=4)
-        pg.draw.rect(surface, (255, 210, 90), rect, 2, border_radius=4)
+    def _is_near_tile(self, center_row, center_col, row, col):
+        return abs(center_row - row) <= 1 and abs(center_col - col) <= 1
 
-    def _draw_item(self, surface, item, cam_x, cam_y):
-        row = item.get("row", 0)
-        col = item.get("col", 0)
-        kind = item.get("kind")
-        x = col * self.tile_size - cam_x
-        y = row * self.tile_size - cam_y
-        center = (int(x + self.tile_size / 2), int(y + self.tile_size / 2))
-        radius = max(4, self.tile_size // 5)
-
-        if kind == TILE_KEY:
-            pg.draw.circle(surface, (255, 225, 90), center, radius)
-        elif kind == TILE_POTION:
-            pg.draw.circle(surface, (80, 220, 120), center, radius)
-        elif kind == TILE_POWER:
-            pg.draw.circle(surface, (200, 120, 255), center, radius)
-
-    def _draw_monster(self, surface, monster, cam_x, cam_y):
-        row = monster.get("row", 0)
-        col = monster.get("col", 0)
-        guarding = monster.get("guarding", False)
-        x = int(col * self.tile_size - cam_x + self.tile_size / 2)
-        y = int(row * self.tile_size - cam_y + self.tile_size / 2)
-        radius = max(8, self.tile_size // 3)
-        fill = (52, 120, 230) if not guarding else (35, 90, 210)
-        outline = (200, 230, 255)
-        pg.draw.circle(surface, fill, (x, y), radius)
-        pg.draw.circle(surface, outline, (x, y), radius, 2)
+    def _is_touching_tile(self, row, col):
+        player_rect = self.player.get_collision_rect()
+        tile_rect = pg.Rect(col * self.tile_size, row * self.tile_size, self.tile_size, self.tile_size)
+        return player_rect.colliderect(tile_rect)

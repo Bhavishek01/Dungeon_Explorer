@@ -24,9 +24,7 @@ class PauseScreen:
 
         labels_and_targets = [
             ("Resume", self._resume),
-            ("Save Game", self._save_game),
-            ("Back to Menu", lambda: self.manager.switch_to(config.SCREEN_MENU)),
-            ("Exit", lambda: sys.exit(0)),
+            ("Quit Game", self._quit_game),
         ]
         self.buttons = []
         for i, (label, callback) in enumerate(labels_and_targets):
@@ -36,8 +34,9 @@ class PauseScreen:
     def _resume(self):
         self.manager.switch_to(config.SCREEN_GAME, resumed=True)
 
-    def _save_game(self):
+    def _quit_game(self):
         self.client.commit_game_state(self.game_state)
+        self.manager.switch_to(config.SCREEN_MENU)
 
     def on_enter(self, **kwargs):
         pass

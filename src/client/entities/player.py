@@ -12,11 +12,16 @@ class Player:
         self.world_x = config.PLAYER_START_X
         self.world_y = config.PLAYER_START_Y
         self.size = max(64, config.TILE_SIZE)
+        self.collision_size = max(18, int(self.size * config.PLAYER_COLLISION_SCALE))
         self.speed = config.PLAYER_DEFAULT_SPEED
         self.direction = "down"
         self.flip = 1          # Animation frame (1 or 2)
         self.count = 0
         self.is_moving = False
+        self.max_health = config.PLAYER_DEFAULT_LIFE
+        self.health = config.PLAYER_DEFAULT_LIFE
+        self.max_stamina = config.PLAYER_DEFAULT_STAMINA
+        self.stamina = config.PLAYER_DEFAULT_STAMINA
 
         # Shooting state
         self.shooting = False
@@ -31,22 +36,22 @@ class Player:
     def _resolve_asset_dir(self):
         base_dir = Path(__file__).resolve().parent.parent
         candidates = [
-            base_dir / "assets" / "player",
-            base_dir / "assets" / "players" / "gunman",
-            base_dir / "assets" / "players",
+            base_dir / "assets" / "gunman",
+            base_dir / "assets" / "swordsman",
+            base_dir / "assets" / "mage",
         ]
 
         for candidate in candidates:
-            if candidate.exists() and candidate.is_dir():
+            if candidate.exists() and candidate.is_dir() and (candidate / "up 1.png").exists():
                 return candidate
 
-        players_root = base_dir / "assets" / "players"
-        if players_root.exists():
-            for subdir in sorted(players_root.iterdir()):
+        assets_root = base_dir / "assets"
+        if assets_root.exists():
+            for subdir in sorted(assets_root.iterdir()):
                 if subdir.is_dir() and (subdir / "up 1.png").exists():
                     return subdir
 
-        return base_dir / "assets" / "players" / "gunman"
+        return base_dir / "assets" / "gunman"
 
     def _load_sprites(self):
         asset_dir = self.asset_dir
@@ -85,8 +90,7 @@ class Player:
             sprites["shoot_down_left"] = [pg.image.load(str(asset_dir / "shoot left down.png")).convert_alpha()]
             sprites["shoot_down_right"] = [pg.image.load(str(asset_dir / "shoot right down.png")).convert_alpha()]
 
-        except Exception as e:
-            print(f"Sprite load error: {e}. Using fallback.")
+        except Exception:
             fallback = pg.Surface((self.size, self.size), pg.SRCALPHA)
             pg.draw.rect(fallback, (60, 140, 255), (0, 0, self.size, self.size))
             for key in sprites:
@@ -100,29 +104,62 @@ class Player:
         sprites["idle"] = sprites["down"]
         return sprites
 
-    def update(self, dt, keys):
+    def apply_class_stats(self, class_stats):
+        self.max_health = int(class_stats.get("life", config.PLAYER_DEFAULT_LIFE))
+        self.health = min(self.health, self.max_health)
+        self.max_stamina = int(class_stats.get("stamina", config.PLAYER_DEFAULT_STAMINA))
+        self.stamina = min(self.stamina, self.max_stamina)
+
+    def reset_stats(self, class_stats):
+        self.max_health = int(class_stats.get("life", config.PLAYER_DEFAULT_LIFE))
+        self.health = self.max_health
+        self.max_stamina = int(class_stats.get("stamina", config.PLAYER_DEFAULT_STAMINA))
+        self.stamina = self.max_stamina
+
+    def get_collision_rect(self, world_x=None, world_y=None):
+        if world_x is None:
+            world_x = self.world_x
+        if world_y is None:
+            world_y = self.world_y
+        offset = (self.size - self.collision_size) / 2
+        return pg.Rect(int(world_x + offset), int(world_y + offset), self.collision_size, self.collision_size)
+
+    def update(self, dt, keys, can_move=None):
         now = pg.time.get_ticks()
         shooting_active = self.shooting and now - self.last_shot_time < config.FIRE_COOLDOWN_MS
         if self.shooting and not shooting_active:
             self.shooting = False
 
         self.is_moving = False
-        dx = dy = 0
+        move_x = 0
+        move_y = 0
 
         if not shooting_active:
-            if keys[pg.K_w] or keys[pg.K_UP]:    dy -= 1; self.direction = "up"; self.is_moving = True
-            if keys[pg.K_s] or keys[pg.K_DOWN]:  dy += 1; self.direction = "down"; self.is_moving = True
-            if keys[pg.K_a] or keys[pg.K_LEFT]:  dx -= 1; self.direction = "left"; self.is_moving = True
-            if keys[pg.K_d] or keys[pg.K_RIGHT]: dx += 1; self.direction = "right"; self.is_moving = True
+            if keys[pg.K_w] or keys[pg.K_UP]:
+                move_y = -1
+                self.direction = "up"
+                self.is_moving = True
+            elif keys[pg.K_s] or keys[pg.K_DOWN]:
+                move_y = 1
+                self.direction = "down"
+                self.is_moving = True
+            elif keys[pg.K_a] or keys[pg.K_LEFT]:
+                move_x = -1
+                self.direction = "left"
+                self.is_moving = True
+            elif keys[pg.K_d] or keys[pg.K_RIGHT]:
+                move_x = 1
+                self.direction = "right"
+                self.is_moving = True
 
-            # Normalize diagonal movement
-            if dx != 0 and dy != 0:
-                length = math.hypot(dx, dy)
-                dx /= length
-                dy /= length
-
-            self.world_x += dx * self.speed
-            self.world_y += dy * self.speed
+            next_x = self.world_x + move_x * self.speed
+            next_y = self.world_y + move_y * self.speed
+            if can_move is None or can_move(next_x, next_y):
+                self.world_x = next_x
+                self.world_y = next_y
+            else:
+                self.is_moving = False
+                self.flip = 1
 
             # Animation timing
             if self.is_moving:

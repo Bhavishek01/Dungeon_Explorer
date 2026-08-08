@@ -4,7 +4,23 @@
       "player_id": "BHAVISHE_001",
       "player_name": "bhavishek",
       "player_class": null,
-      "items": [],
+      "items": [
+        {
+          "id": "rare_scroll",
+          "name": "Rare Scroll",
+          "quantity": 9
+        },
+        {
+          "id": "basic_scroll",
+          "name": "Basic Scroll",
+          "quantity": 11
+        },
+        {
+          "id": "door_key",
+          "name": "Door Key",
+          "quantity": 2
+        }
+      ],
       "equipped": [
         0,
         0,

@@ -53,6 +53,47 @@ def reachable_tiles(grid: Sequence[Sequence[int]], start: Coordinate) -> Set[Coo
 	return visited
 
 
+def distance_map(grid: Sequence[Sequence[int]], start: Coordinate) -> Dict[Coordinate, int]:
+	height = len(grid)
+	width = len(grid[0]) if height else 0
+	distances: Dict[Coordinate, int] = {}
+	queue: deque[Tuple[Coordinate, int]] = deque([(start, 0)])
+
+	while queue:
+		(row, col), distance = queue.popleft()
+		if (row, col) in distances:
+			continue
+		if not (0 <= row < height and 0 <= col < width):
+			continue
+		if grid[row][col] not in WALKABLE_TILES:
+			continue
+
+		distances[(row, col)] = distance
+		queue.append(((row - 1, col), distance + 1))
+		queue.append(((row + 1, col), distance + 1))
+		queue.append(((row, col - 1), distance + 1))
+		queue.append(((row, col + 1), distance + 1))
+
+	return distances
+
+
+def farthest_reachable_tile(
+	grid: Sequence[Sequence[int]],
+	start: Coordinate,
+	exclude: Optional[Set[Coordinate]] = None,
+) -> Coordinate:
+	exclude = exclude or set()
+	distances = distance_map(grid, start)
+	if not distances:
+		return start
+
+	return max(
+		(coord for coord in distances if coord not in exclude),
+		key=lambda coord: (distances[coord], -coord[0], -coord[1]),
+		default=start,
+	)
+
+
 def is_playable(grid: Sequence[Sequence[int]], start: Optional[Coordinate] = None) -> bool:
 	if start is None:
 		start = find_spawn_tile(grid)
