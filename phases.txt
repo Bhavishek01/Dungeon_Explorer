@@ -1,17 +1,18 @@
 Build order — 7 phases, each one playable/testable before moving on
+
 Phase 0 — Client shell & local profiles (few days)
-Port frame.java's CardLayout to pygame screen-switching (a simple current_screen variable + a screens dict, swap on state change — this is genuinely the easiest part of the port). Start straight on a local menu backed by a JSON profile store, with no login/register gate at all. Milestone: you boot into the menu and can start a local run immediately.
+    Port frame.java's CardLayout to pygame screen-switching (a simple current_screen variable + a screens dict, swap on state change — this is genuinely the easiest part of the port). Start straight on a local menu backed by a JSON profile store, with no login/register gate at all. Milestone: you boot into the menu and can start a local run immediately.
 Phase 1 — Static map + player movement (few days)
-Hardcode one 50×50 array (literally reuse your 50x40.txt). Port backgroundmanager's tile-drawing and player's movement/collision. Milestone: player walks around a fixed map with wall collision, camera follows player.
+    Hardcode one 50×50 array (literally reuse your 50x40.txt). Port backgroundmanager's tile-drawing and player's movement/collision. Milestone: player walks around a fixed map with wall collision, camera follows player.
 Phase 2 — Dumb monsters (FSM + A only)*
-One monster type, fully local — just idle/chase/attack FSM and A* movement toward the player. Milestone: a monster chases and hits you. This is a real, shippable arcade loop already.
+    One monster type, fully local — just idle/chase/attack FSM and A* movement toward the player. Milestone: a monster chases and hits you. This is a real, shippable arcade loop already.
 Phase 3 — Combat, skills, items, inventory
-Port projectiles, skill effects (burn/slow/poison/etc. as simple timed status objects), inventory UI, equip slots. Reuse your existing itemsdetail/equipped logic almost conceptually unchanged. Milestone: full combat loop with skills and items, single fixed map.
+    Port projectiles, skill effects (burn/slow/poison/etc. as simple timed status objects), inventory UI, equip slots. Reuse your existing itemsdetail/equipped logic almost conceptually unchanged. Milestone: full combat loop with skills and items, single fixed map.
 Phase 4 — Dynamic map generation (local)
-Implement noise-fill → cellular automata smoothing → BFS connectivity fix, in isolation first (write it as a standalone script that prints/renders a grid, no networking involved, so you can iterate fast). Once it reliably produces good caves, wire it into the local game startup instead of the static file. Milestone: every new local run gives a different, valid map.
+    Implement noise-fill → cellular automata smoothing → BFS connectivity fix, in isolation first (write it as a standalone script that prints/renders a grid, no networking involved, so you can iterate fast). Once it reliably produces good caves, wire it into the local game startup instead of the static file. Milestone: every new local run gives a different, valid map.
 Phase 5 — Player/monster history tracking
-Add local save tables/files for kill-history-by-monster-type and skill-usage histogram. Log every kill and every skill-use locally. This phase is just plumbing — no AI yet, just make sure the data you'll need in Phase 6 is actually being recorded correctly. Verify with raw file inspection before trusting it in code.
+    Add local save tables/files for kill-history-by-monster-type and skill-usage histogram. Log every kill and every skill-use locally. This phase is just plumbing — no AI yet, just make sure the data you'll need in Phase 6 is actually being recorded correctly. Verify with raw file inspection before trusting it in code.
 Phase 6 — Monster intelligence, one algorithm at a time
-Add decision tree → monster profile selection first (smallest, most testable — write it against a fake/seeded dataset before touching live data). Then k-means clustering of playstyle. Then Markov attack sequencing. Then Q-learning last, since it's the most fiddly to tune (reward shaping always takes iteration). Test each in isolation with a script that feeds it fake histories and checks the output makes sense, before wiring into the live monster loop.
+    Add decision tree → monster profile selection first (smallest, most testable — write it against a fake/seeded dataset before touching live data). Then k-means clustering of playstyle. Then Markov attack sequencing. Then Q-learning last, since it's the most fiddly to tune (reward shaping always takes iteration). Test each in isolation with a script that feeds it fake histories and checks the output makes sense, before wiring into the live monster loop.
 Phase 7 — GA map refinement, treasure/monster-egg items, polish
-Once the base map generator is solid, add the GA layer scoring/selecting among candidate maps. Add remaining items (elixirs, monster eggs) and profile screen stats display.
+    Once the base map generator is solid, add the GA layer scoring/selecting among candidate maps. Add remaining items (elixirs, monster eggs) and profile screen stats display.
