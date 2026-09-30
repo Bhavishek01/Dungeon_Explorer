@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from pathlib import Path
 from typing import Dict, Iterable, List, Tuple
 
@@ -30,6 +31,7 @@ class WorldRenderer:
         self.wall_image = self._load_scaled_image(ENVIRONMENT_ROOT / "wall.png")
         self.water_image = self._load_scaled_image(ENVIRONMENT_ROOT / "water.png")
         self.key_image = self._load_scaled_image(ITEM_ROOT / "key.png")
+        self.door_key_image = self._load_scaled_image(ITEM_ROOT / "door_key.png")
         self.basic_scroll_image = self._load_scaled_image(ITEM_ROOT / "basic scroll.png")
         self.rare_scroll_image = self._load_scaled_image(ITEM_ROOT / "rare scroll.png")
         self.treasure_closed_image = self._load_scaled_image(ITEM_ROOT / "treasure_close.png")
@@ -42,7 +44,7 @@ class WorldRenderer:
     def draw(self, surface: pg.Surface, world, camera_x: float, camera_y: float, elapsed: float) -> None:
         self._draw_decorations(surface, world, camera_x, camera_y)
         self._draw_tiles(surface, world, camera_x, camera_y, elapsed)
-        self._draw_ground_items(surface, world, camera_x, camera_y)
+        self._draw_ground_items(surface, world, camera_x, camera_y, elapsed)
         self._draw_wall_lights(surface, world, camera_x, camera_y)
         self._draw_door(surface, world, camera_x, camera_y)
         self._draw_monsters(surface, world, camera_x, camera_y, elapsed)
@@ -81,13 +83,14 @@ class WorldRenderer:
             return self.floor_variants[(row * 13 + col * 7) % len(self.floor_variants)]
         return None
 
-    def _draw_ground_items(self, surface: pg.Surface, world, camera_x: float, camera_y: float) -> None:
+    def _draw_ground_items(self, surface: pg.Surface, world, camera_x: float, camera_y: float, elapsed: float) -> None:
         for key in getattr(world, "keys", []):
             if key.get("collected"):
                 continue
+            image = self.door_key_image if key.get("kind") == "door_key" else self.key_image
             self._blit_centered(
                 surface,
-                self.key_image,
+                image,
                 int(key["row"]),
                 int(key["col"]),
                 camera_x,
@@ -99,7 +102,7 @@ class WorldRenderer:
         for scroll in getattr(world, "scrolls", []):
             if scroll.get("collected"):
                 continue
-            image = self.basic_scroll_image if scroll.get("kind") == "basic_scroll" else self.rare_scroll_image
+            image = self._load_scaled_image(Path(scroll["image"]), scale=0.72)
             self._blit_centered(
                 surface,
                 image,
@@ -108,17 +111,28 @@ class WorldRenderer:
                 camera_x,
                 camera_y,
                 scale=0.72,
-                y_offset=-self.tile_size * 0.16,
+                y_offset=-self.tile_size * 0.16 - abs(math.sin(elapsed * 5.0)) * self.tile_size * 0.06,
             )
 
         for treasure in getattr(world, "treasures", []):
             row = int(treasure["row"])
             col = int(treasure["col"])
             if treasure.get("state") == "open":
-                image = self.treasure_open_item_image if treasure.get("open_variant") == "item" else self.treasure_open_nothing_image
+                chest_image = self.treasure_open_nothing_image if treasure.get("open_variant") == "nothing" else self.treasure_open_item_image
+                self._blit_centered(
+                    surface,
+                    chest_image,
+                    row,
+                    col,
+                    camera_x,
+                    camera_y,
+                    scale=1.0,
+                    y_offset=-self.tile_size * 0.10,
+                )
             else:
                 image = self.treasure_closed_image
-            self._blit_centered(surface, image, row, col, camera_x, camera_y, scale=1.0, y_offset=-self.tile_size * 0.10)
+                y_offset = -self.tile_size * 0.10
+                self._blit_centered(surface, image, row, col, camera_x, camera_y, scale=1.0, y_offset=y_offset)
 
     def _draw_door(self, surface: pg.Surface, world, camera_x: float, camera_y: float) -> None:
         door = world.door

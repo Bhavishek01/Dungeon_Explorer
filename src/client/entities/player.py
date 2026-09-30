@@ -22,6 +22,9 @@ class Player:
         self.health = config.PLAYER_DEFAULT_LIFE
         self.max_stamina = config.PLAYER_DEFAULT_STAMINA
         self.stamina = config.PLAYER_DEFAULT_STAMINA
+        self.level = 1
+        self.experience = 0
+        self.experience_required = config.PLAYER_INITIAL_EXPERIENCE_REQUIRED
 
         # Shooting state
         self.shooting = False
@@ -115,6 +118,14 @@ class Player:
         self.health = self.max_health
         self.max_stamina = int(class_stats.get("stamina", config.PLAYER_DEFAULT_STAMINA))
         self.stamina = self.max_stamina
+
+    def apply_progression(self, profile):
+        self.level = max(1, int(profile.get("level", 1)))
+        self.experience = max(0, int(profile.get("experience", 0)))
+        self.experience_required = max(
+            1,
+            int(profile.get("experience_required", config.PLAYER_INITIAL_EXPERIENCE_REQUIRED)),
+        )
 
     def get_collision_rect(self, world_x=None, world_y=None):
         if world_x is None:

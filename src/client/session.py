@@ -30,8 +30,50 @@ class ClientSession:
         return True
 
     def disconnect(self):
+        self.clear_temporary_keys()
         self._save_store()
         self.connected = False
+
+    def clear_temporary_keys(self, game_state=None):
+        if game_state is not None:
+            game_state["items"] = [
+                item for item in game_state.get("items", [])
+                if not str(item.get("id", "")).endswith("key")
+                and not str(item.get("id", "")).startswith("treasure_key_")
+            ]
+        if self._active_player is not None:
+            self._active_player["items"] = [
+                item for item in self._active_player.get("items", [])
+                if not str(item.get("id", "")).endswith("key")
+                and not str(item.get("id", "")).startswith("treasure_key_")
+            ]
+
+    def discard_game_run(self, game_state):
+        current_profile = deepcopy(game_state.get("profile", {}))
+        baseline_profile = deepcopy(game_state.get("_run_start_profile", current_profile))
+        baseline_profile["items_used"] = current_profile.get("items_used", {})
+        baseline_profile["coins"] = current_profile.get("coins", baseline_profile.get("coins", 0))
+        game_state["profile"] = baseline_profile
+        game_state["active_item_effects"] = []
+        self.clear_temporary_keys(game_state)
+        self.commit_inventory_state(game_state)
+
+    def commit_inventory_state(self, game_state):
+        if self._active_player is None:
+            return
+
+        persistent_items = [
+            deepcopy(item) for item in game_state.get("items", [])
+            if not str(item.get("id", "")).endswith("key")
+            and not str(item.get("id", "")).startswith("treasure_key_")
+        ]
+        self._active_player["items"] = persistent_items
+        stored_profile = deepcopy(self._active_player.get("profile", {}))
+        run_profile = game_state.get("profile", {})
+        stored_profile["items_used"] = deepcopy(run_profile.get("items_used", stored_profile.get("items_used", {})))
+        stored_profile["coins"] = int(run_profile.get("coins", stored_profile.get("coins", 0)))
+        self._active_player["profile"] = stored_profile
+        self._save_store()
 
     def send(self, message: str):
         tag, _, payload = message.partition("|")
@@ -133,7 +175,15 @@ class ClientSession:
                 "player_class": self.player_class,
                 "items": [],
                 "equipped": [0, 0, 0],
-                "profile": {"level": 1, "monster_kills": {}, "skill_usage": {}},
+                "profile": {
+                    "level": 1,
+                    "experience": 0,
+                    "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
+                    "monster_kills": {},
+                    "items_used": {},
+                    "coins": 0,
+                    "items_used": {},
+                },
             }
 
         return {
@@ -174,7 +224,15 @@ class ClientSession:
             "player_class": None,
             "items": [],
             "equipped": [0, 0, 0],
-            "profile": {"level": 1, "monster_kills": {}, "skill_usage": {}},
+            "profile": {
+                "level": 1,
+                "experience": 0,
+                "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
+                "monster_kills": {},
+                "items_used": {},
+                "coins": 0,
+                "items_used": {},
+            },
         }
 
     def _set_active_player(self, player):

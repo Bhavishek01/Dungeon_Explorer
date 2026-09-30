@@ -35,7 +35,7 @@ class PauseScreen:
         self.manager.switch_to(config.SCREEN_GAME, resumed=True)
 
     def _quit_game(self):
-        self.client.commit_game_state(self.game_state)
+        self.client.discard_game_run(self.game_state)
         self.manager.switch_to(config.SCREEN_MENU)
 
     def on_enter(self, **kwargs):

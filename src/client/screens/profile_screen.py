@@ -6,8 +6,9 @@
 #
 # Expects game_state["profile"] = {
 #     "level": int, "player_class": str,
+#     "experience": int, "experience_required": int,
 #     "monster_kills": {monster_name: count, ...},
-#     "skill_usage": {skill_name: count, ...},
+#     "items_used": {item_name: count, ...},
 # }
 # Falls back to placeholders if the profile is still empty.
 # ============================================================
@@ -44,6 +45,8 @@ class ProfileScreen:
         if event.type == pg.QUIT:
             sys.exit(0)
         self.back_button.handle_event(event)
+        if event.type == pg.KEYDOWN and event.key == pg.K_ESCAPE:
+            self.manager.switch_to(config.SCREEN_MENU)
 
     def update(self, dt):
         self.client.poll_events()
@@ -56,8 +59,9 @@ class ProfileScreen:
         profile = self.game_state.get("profile", {})
         name = self.game_state.get("player_name", "?")
         pid = self.game_state.get("player_id", "?")
-        pclass = self.game_state.get("player_class", "?")
         level = profile.get("level", 1)
+        experience = profile.get("experience", 0)
+        experience_required = profile.get("experience_required", config.PLAYER_INITIAL_EXPERIENCE_REQUIRED)
 
         col_x = 60
         y = 90
@@ -66,8 +70,8 @@ class ProfileScreen:
         for text in [
             f"Explorer Name: {name}",
             f"id: {pid}",
-            f"Class: {config.PLAYER_CLASSES.get(pclass, {}).get('label', pclass)}",
             f"Level: {level}",
+            f"XP: {experience}/{experience_required}",
         ]:
             draw_label(surface, text, (col_x, y), font=self.body_font, color=config.COLOR_WHITE)
             y += line_gap
@@ -87,12 +91,12 @@ class ProfileScreen:
             y += 20
 
         y += 20
-        draw_label(surface, "Skill Usage", (col_x, y), font=self.label_font, color=config.COLOR_YELLOW)
+        draw_label(surface, "Items Used", (col_x, y), font=self.label_font, color=config.COLOR_YELLOW)
         y += line_gap
-        skill_usage = profile.get("skill_usage", {})
-        if skill_usage:
-            for skill_name, count in sorted(skill_usage.items(), key=lambda kv: -kv[1]):
-                draw_label(surface, f"{skill_name}: {count}", (col_x + 10, y),
+        items_used = profile.get("items_used", {})
+        if items_used:
+            for item_name, count in sorted(items_used.items(), key=lambda kv: -kv[1]):
+                draw_label(surface, f"{item_name}: {count}", (col_x + 10, y),
                            font=self.body_font, color=config.COLOR_LIGHT_GRAY)
                 y += 20
         else:

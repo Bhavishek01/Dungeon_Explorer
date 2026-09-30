@@ -1,24 +1,14 @@
 {
   "players": [
     {
-      "player_id": "BHAVISHE_001",
-      "player_name": "bhavishek",
+      "player_id": "BHAVISHEK_001",
+      "player_name": "Bhavishek",
       "player_class": null,
       "items": [
         {
-          "id": "rare_scroll",
-          "name": "Rare Scroll",
-          "quantity": 10
-        },
-        {
-          "id": "basic_scroll",
-          "name": "Basic Scroll",
-          "quantity": 12
-        },
-        {
-          "id": "door_key",
-          "name": "Door Key",
-          "quantity": 3
+          "id": "bow",
+          "name": "Bow",
+          "quantity": 2
         }
       ],
       "equipped": [
@@ -27,9 +17,30 @@
         0
       ],
       "profile": {
-        "level": 1,
-        "monster_kills": {},
-        "skill_usage": {}
+        "level": 5,
+        "monster_kills": {
+          "monster2": 11,
+          "monster1": 24,
+          "monster3": 8
+        },
+        "skill_usage": {},
+        "experience": 4585,
+        "experience_required": 6642,
+        "items_used": {
+          "Wall Light": 1,
+          "Nothing Bottle": 1,
+          "Coins +100": 1,
+          "Health Full": 7,
+          "Stamina +250": 10,
+          "Stamina +250 Gradual": 10,
+          "Health +250 Gradual": 4,
+          "Health +50": 5,
+          "Stamina Full": 9,
+          "Light": 3,
+          "Stamina 50": 8,
+          "Bow": 4
+        },
+        "coins": 300
       }
     }
   ]

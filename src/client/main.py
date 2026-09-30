@@ -8,6 +8,7 @@ from screens.setup_screen import SetupScreen
 from screens.menu_screen import MenuScreen
 from screens.game_screen import GameScreen
 from screens.inventory_screen import InventoryScreen
+from screens.menu_inventory_screen import MenuInventoryScreen
 from screens.profile_screen import ProfileScreen
 from screens.pause_screen import PauseScreen
 
@@ -31,8 +32,12 @@ class DungeonQuest:
             "equipped": [0, 0, 0],
             "profile": {
                 "level": 1,
+                "experience": 0,
+                "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
                 "monster_kills": {},
-                "skill_usage": {},
+                "items_used": {},
+                "coins": 0,
+                "items_used": {},
             },
         }
 
@@ -41,6 +46,7 @@ class DungeonQuest:
         self.manager.register(config.SCREEN_MENU, MenuScreen)
         self.manager.register(config.SCREEN_GAME, GameScreen)
         self.manager.register(config.SCREEN_INVENTORY, InventoryScreen)
+        self.manager.register(config.SCREEN_MENU_INVENTORY, MenuInventoryScreen)
         self.manager.register(config.SCREEN_PROFILE, ProfileScreen)
         self.manager.register(config.SCREEN_PAUSE, PauseScreen)
 

@@ -45,7 +45,7 @@ class MenuScreen:
 
         labels_and_targets = [
             ("Start Game", self._start_game),
-            ("Inventory", lambda: self.manager.switch_to(config.SCREEN_INVENTORY)),
+            ("Inventory", lambda: self.manager.switch_to(config.SCREEN_MENU_INVENTORY)),
             ("Profile", lambda: self.manager.switch_to(config.SCREEN_PROFILE)),
             ("Exit", lambda: sys.exit(0)),
         ]

@@ -47,7 +47,7 @@ def place_entities(
     scrolls = place_scrolls(grid, reachable_list, excluded, rng)
     excluded.update((scroll["row"], scroll["col"]) for scroll in scrolls)
 
-    monsters = place_monsters(grid, reachable_list, excluded, rng, spawn, door_key_coord, treasures)
+    monsters = place_monsters(grid, reachable_list, excluded, rng, spawn, door_key_coord, door_coord, treasures)
     wall_lights = place_wall_lights(grid, rng)
     decorations = place_environment_decorations(grid, reachable_list, excluded, rng)
 
@@ -56,7 +56,7 @@ def place_entities(
             "row": door_key_coord[0],
             "col": door_key_coord[1],
             "kind": "door_key",
-            "image": rel_path("items", "key.png"),
+            "image": rel_path("items", "door_key.png"),
             "collected": False,
         },
         "door": {
@@ -85,24 +85,27 @@ def place_treasures(
     rng.shuffle(candidates)
     treasures: List[Dict[str, object]] = []
     variants = [
-        ("item", rel_path("items", "treasure_open_item.png"), {"id": "rare_scroll", "name": "Rare Scroll", "quantity": 1}),
-        ("nothing", rel_path("items", "treasure_open_nothing.png"), None),
+        ("coins", rel_path("items", "coins.png"), {"id": "coins", "name": "Coins", "quantity": 1}),
+        ("bow", rel_path("items", "bow gun.png"), {"id": "bow", "name": "Bow", "quantity": 1}),
+        ("light", rel_path("items", "light.png"), {"id": "light", "name": "Light", "quantity": 1}),
     ]
 
-    for index, coord in enumerate(candidates[:2]):
+    treasure_count = min(len(candidates), rng.randint(2, 3))
+    for index, coord in enumerate(candidates[:treasure_count]):
         row, col = coord
-        variant, open_image, reward_item = variants[index % len(variants)]
-        key_kind = f"treasure_key_{index + 1}"
+        reward_kind, reward_image, reward_item = rng.choice(variants)
+        key_kind = "key"
         grid[row][col] = TILE_TREASURE
         treasures.append(
             {
                 "row": row,
                 "col": col,
                 "state": "closed",
-                "open_variant": variant,
+                "open_variant": reward_kind,
                 "required_key": key_kind,
                 "closed_image": rel_path("items", "treasure_close.png"),
-                "open_image": open_image,
+                "open_image": reward_image,
+                "reward_image": reward_image,
                 "reward_item": reward_item,
             }
         )
@@ -118,15 +121,7 @@ def place_keys(
     door_key_coord: Coordinate,
     treasures: Sequence[Dict[str, object]],
 ) -> List[Dict[str, object]]:
-    keys = [
-        {
-            "row": door_key_coord[0],
-            "col": door_key_coord[1],
-            "kind": "door_key",
-            "image": rel_path("items", "key.png"),
-            "collected": False,
-        }
-    ]
+    keys: List[Dict[str, object]] = []
 
     choices = [coord for coord in reachable if coord not in excluded]
     rng.shuffle(choices)
@@ -134,11 +129,17 @@ def place_keys(
     for index, treasure in enumerate(treasures):
         target = (treasure["row"], treasure["col"])
         key_kind = treasure["required_key"]
-        position = nearest_free_position(choices, target, excluded, radius=5)
+        available = [coord for coord in choices if coord not in excluded]
+        position = max(
+            available,
+            key=lambda coord: abs(coord[0] - target[0]) + abs(coord[1] - target[1]),
+            default=None,
+        )
         if position is None:
             continue
         row, col = position
         grid[row][col] = TILE_KEY
+        excluded.add(position)
         keys.append(
             {
                 "row": row,
@@ -149,7 +150,7 @@ def place_keys(
             }
         )
 
-    grid[door_key_coord[0]][door_key_coord[1]] = TILE_KEY
+    grid[door_key_coord[0]][door_key_coord[1]] = TILE_FLOOR
     return keys
 
 
@@ -165,16 +166,20 @@ def place_scrolls(
 
     for index, coord in enumerate(choices[:6]):
         row, col = coord
-        if index < 4:
-            tile_id = TILE_BASIC_SCROLL
-            kind = "basic_scroll"
-            image = rel_path("items", "basic scroll.png")
-        else:
-            tile_id = TILE_RARE_SCROLL
-            kind = "rare_scroll"
-            image = rel_path("items", "rare scroll.png")
+        tile_id = TILE_BASIC_SCROLL if index < 4 else TILE_RARE_SCROLL
+        kind, image, name = rng.choice(
+            [
+                ("health_gradual", rel_path("potions", "health +250 gradually.png"), "Health +250 Gradual"),
+                ("stamina_gradual", rel_path("potions", "stamina +50 gradually.png"), "Stamina +250 Gradual"),
+                ("stamina_50", rel_path("potions", "stamina +50 gradually.png"), "Stamina +50"),
+                ("health_50", rel_path("potions", "health 50.png"), "Health +50"),
+                ("health_full", rel_path("potions", "health full.png"), "Health Full"),
+                ("stamina_full", rel_path("potions", "stamina full.png"), "Stamina Full"),
+                ("stamina_250", rel_path("potions", "stamina +250.png"), "Stamina +250"),
+            ]
+        )
         grid[row][col] = tile_id
-        scrolls.append({"row": row, "col": col, "kind": kind, "tile": tile_id, "image": image, "collected": False})
+        scrolls.append({"row": row, "col": col, "kind": kind, "name": name, "tile": tile_id, "image": image, "collected": False})
 
     return scrolls
 
@@ -186,6 +191,7 @@ def place_monsters(
     rng: random.Random,
     spawn: Coordinate,
     door_key_coord: Coordinate,
+    door_coord: Coordinate,
     treasures: Sequence[Dict[str, object]],
 ) -> List[Dict[str, object]]:
     choices = [coord for coord in reachable if coord not in excluded]
@@ -197,10 +203,16 @@ def place_monsters(
         ("monster3", monster_frames("monster3")),
     ]
 
-    guard_targets = [door_key_coord] + [(treasure["row"], treasure["col"]) for treasure in treasures]
-    for index, target in enumerate(guard_targets):
-        monster_kind, frames = monster_types[index % len(monster_types)]
-        position = nearest_free_position(choices, target, excluded, radius=6)
+    guard_targets = [(rng.choice(choices), "monster3")] + [
+        ((treasure["row"], treasure["col"]), monster_types[index % 2][0])
+        for index, treasure in enumerate(treasures)
+    ]
+    for target, monster_kind in guard_targets:
+        frames = dict(monster_types)[monster_kind]
+        if monster_kind == "monster3":
+            position = target
+        else:
+            position = nearest_free_position(choices, target, excluded, radius=6)
         if position is None:
             continue
         monsters.append(
@@ -219,7 +231,7 @@ def place_monsters(
             break
         if coord in excluded:
             continue
-        monster_kind, frames = monster_types[(index + 1) % len(monster_types)]
+        monster_kind, frames = monster_types[(index + 1) % 2]
         if not path_exists(grid, coord, spawn):
             continue
         monsters.append(

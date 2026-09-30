@@ -71,7 +71,7 @@ def generate_map(
 def score_key(metrics: Dict[str, float], profile: Dict[str, object]) -> float:
     level = int(profile.get("level", 1) or 1)
     kills = profile.get("monster_kills", {}) or {}
-    skills = profile.get("skill_usage", {}) or {}
+    skills = profile.get("items_used", {}) or {}
     kill_total = sum(int(value) for value in kills.values()) if isinstance(kills, dict) else 0
     skill_total = sum(int(value) for value in skills.values()) if isinstance(skills, dict) else 0
 
