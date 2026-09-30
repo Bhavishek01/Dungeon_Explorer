@@ -6,8 +6,18 @@
       "player_class": null,
       "items": [
         {
-          "id": "bow",
-          "name": "Bow",
+          "id": "stamina_gradual",
+          "name": "Stamina +250 Gradual",
+          "quantity": 3
+        },
+        {
+          "id": "stamina_50",
+          "name": "Stamina 50",
+          "quantity": 1
+        },
+        {
+          "id": "stamina_250",
+          "name": "Stamina +250",
           "quantity": 2
         }
       ],
@@ -30,17 +40,18 @@
           "Wall Light": 1,
           "Nothing Bottle": 1,
           "Coins +100": 1,
-          "Health Full": 7,
-          "Stamina +250": 10,
-          "Stamina +250 Gradual": 10,
-          "Health +250 Gradual": 4,
-          "Health +50": 5,
-          "Stamina Full": 9,
-          "Light": 3,
-          "Stamina 50": 8,
-          "Bow": 4
+          "Health Full": 10,
+          "Stamina +250": 11,
+          "Stamina +250 Gradual": 12,
+          "Health +250 Gradual": 6,
+          "Health +50": 7,
+          "Stamina Full": 13,
+          "Light": 5,
+          "Stamina 50": 9,
+          "Bow": 5,
+          "Treasure Key": 1
         },
-        "coins": 300
+        "coins": 600
       }
     }
   ]

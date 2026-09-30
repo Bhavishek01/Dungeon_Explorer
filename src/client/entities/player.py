@@ -137,7 +137,7 @@ class Player:
 
     def update(self, dt, keys, can_move=None):
         now = pg.time.get_ticks()
-        shooting_active = self.shooting and now - self.last_shot_time < config.FIRE_COOLDOWN_MS
+        shooting_active = self.shooting and now - self.last_shot_time < self.get_attack_cooldown_ms()
         if self.shooting and not shooting_active:
             self.shooting = False
 
@@ -192,11 +192,19 @@ class Player:
         else:
             self.current_image = self.sprites[self.direction][0]
 
+    def get_attack_cooldown_ms(self):
+        if self.has_bow_gun():
+            return config.FIRE_COOLDOWN_MS / 2
+        return config.FIRE_COOLDOWN_MS
+
+    def has_bow_gun(self):
+        return any(item_id in self.game_state.get("active_item_effects", []) for item_id in ("bow", "bow_gun"))
+
     def handle_attack(self, mouse_pos):
         """Calculate direction and trigger shoot sprite"""
         now = pg.time.get_ticks()
-        if now - self.last_shot_time < config.FIRE_COOLDOWN_MS:
-            return
+        if now - self.last_shot_time < self.get_attack_cooldown_ms():
+            return False
 
         cx = config.SCREEN_WIDTH // 2
         cy = config.SCREEN_HEIGHT // 2
@@ -232,6 +240,7 @@ class Player:
         self.shooting = True
         self.last_shot_time = now
         self.shoot_direction = (dx, dy)
+        return True
 
     def get_screen_pos(self):
         """Player stays in center"""

@@ -138,13 +138,14 @@ class GameScreen(Screen):
             if event.key == pg.K_ESCAPE:
                 self.manager.switch_to(config.SCREEN_PAUSE)
             if event.key == pg.K_e:
-                self.manager.switch_to(config.SCREEN_INVENTORY)
+                self.manager.switch_to(config.SCREEN_INVENTORY, resumed=True)
             if event.key == pg.K_SPACE:
                 self._resolve_world_interactions()
 
         if event.type == pg.MOUSEBUTTONDOWN and event.button == 1:
             mouse_pos = pg.mouse.get_pos()
-            self.player.handle_attack(mouse_pos)
+            if not self.player.handle_attack(mouse_pos):
+                return
 
             # Spawn projectile from the player's center
             start_x = self.player.world_x + self.player.size // 2
@@ -195,12 +196,12 @@ class GameScreen(Screen):
         for p in self.projectiles[:]:
             next_x = p['x'] + p['dx']
             next_y = p['y'] + p['dy']
-            if self._projectile_hits_blocker(next_x, next_y) or self._projectile_hits_monster(next_x, next_y):
+            if self._projectile_hits_blocker(next_x, next_y) or self._projectile_hits_monster(next_x, next_y, p):
                 self.projectiles.remove(p)
                 continue
             p['x'] = next_x
             p['y'] = next_y
-            p['dist'] += config.PROJECTILE_SPEED
+            p['dist'] += p['speed']
             if p['dist'] >= p['max_distance']:
                 self.projectiles.remove(p)
 
@@ -261,6 +262,7 @@ class GameScreen(Screen):
         max_radius = self.tile_size * config.FOG_RADIUS_TILES
         clear_radius = self.tile_size * 2.2
         bands = 24
+        overlay.fill((12, 14, 24, config.FOG_ALPHA))
         for band in range(bands, -1, -1):
             progress = band / bands
             radius = int(clear_radius + (max_radius - clear_radius) * progress)
@@ -417,11 +419,15 @@ class GameScreen(Screen):
 
     def _create_projectile(self, start_x, start_y, dx, dy):
         length = math.hypot(dx, dy) or 1
+        projectile_multiplier = 2 if self.player.has_bow_gun() else 1
+        projectile_speed = config.PROJECTILE_SPEED * projectile_multiplier
         self.projectiles.append({
             'x': start_x,
             'y': start_y,
-            'dx': (dx / length) * config.PROJECTILE_SPEED,
-            'dy': (dy / length) * config.PROJECTILE_SPEED,
+            'dx': (dx / length) * projectile_speed,
+            'dy': (dy / length) * projectile_speed,
+            'speed': projectile_speed,
+            'damage': config.PROJECTILE_DAMAGE * projectile_multiplier,
             'dist': 0,
             'max_distance': self.tile_size * config.PROJECTILE_MAX_TILES,
             'angle': math.degrees(math.atan2(dy, dx))
@@ -662,14 +668,14 @@ class GameScreen(Screen):
         col = int(x // self.tile_size)
         return self._is_collidable_tile(self.world.tile_at(row, col))
 
-    def _projectile_hits_monster(self, x, y):
+    def _projectile_hits_monster(self, x, y, projectile):
         projectile_rect = pg.Rect(int(x) - 4, int(y) - 4, 8, 8)
         for monster in self.monsters[:]:
             if not projectile_rect.colliderect(monster.rect):
                 continue
             if not monster.is_active:
                 self._wake_monster(monster)
-            monster.health -= config.PROJECTILE_DAMAGE
+            monster.health -= projectile.get("damage", config.PROJECTILE_DAMAGE)
             if monster.health <= 0:
                 self._record_monster_kill(monster)
                 self.monsters.remove(monster)

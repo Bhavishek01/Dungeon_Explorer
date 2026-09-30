@@ -58,6 +58,9 @@ class InventoryScreen:
         self.list_top = 80
 
     def on_enter(self, **kwargs):
+        if kwargs.get("resumed"):
+            self._rebuild_use_buttons()
+            return
         self.game_state.update(self.client.get_active_profile_snapshot())
         self._rebuild_use_buttons()
 
