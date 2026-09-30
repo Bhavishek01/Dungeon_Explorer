@@ -8,17 +8,17 @@
         {
           "id": "rare_scroll",
           "name": "Rare Scroll",
-          "quantity": 9
+          "quantity": 10
         },
         {
           "id": "basic_scroll",
           "name": "Basic Scroll",
-          "quantity": 11
+          "quantity": 12
         },
         {
           "id": "door_key",
           "name": "Door Key",
-          "quantity": 2
+          "quantity": 3
         }
       ],
       "equipped": [

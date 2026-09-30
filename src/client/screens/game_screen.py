@@ -115,8 +115,13 @@ class GameScreen(Screen):
 
         # Update bullets
         for p in self.projectiles[:]:
-            p['x'] += p['dx']
-            p['y'] += p['dy']
+            next_x = p['x'] + p['dx']
+            next_y = p['y'] + p['dy']
+            if self._projectile_hits_blocker(next_x, next_y):
+                self.projectiles.remove(p)
+                continue
+            p['x'] = next_x
+            p['y'] = next_y
             p['dist'] += config.PROJECTILE_SPEED
             if p['dist'] > config.PROJECTILE_MAX_DISTANCE:
                 self.projectiles.remove(p)
@@ -148,8 +153,24 @@ class GameScreen(Screen):
             "WASD/Arrows: Move | Shift: Run | Mouse: Shoot | P: Pause | E: Inventory",
             (10, config.SCREEN_HEIGHT - 30),
             font=self.hud_font, color=config.COLOR_GRAY)
-        draw_label(surface, f"HP {int(self.player.health)}/{int(self.player.max_health)}", (16, 12), font=self.hud_font, color=config.COLOR_RED)
-        draw_label(surface, f"STA {int(self.player.stamina)}/{int(self.player.max_stamina)}", (16, 32), font=self.hud_font, color=config.COLOR_CYAN)
+        self._draw_stat_bar(surface, "HP", self.player.health, self.player.max_health, (16, 12), config.COLOR_RED)
+        self._draw_stat_bar(surface, "STA", self.player.stamina, self.player.max_stamina, (16, 32), config.COLOR_CYAN)
+
+    def _draw_stat_bar(self, surface, label, value, maximum, position, color):
+        x, y = position
+        bar_width = 180
+        bar_height = 14
+        label_width = 32
+        bar_rect = pg.Rect(x + label_width, y + 2, bar_width, bar_height)
+        ratio = max(0.0, min(1.0, value / maximum if maximum else 0.0))
+
+        draw_label(surface, label, (x, y), font=self.hud_font, color=color)
+        pg.draw.rect(surface, (35, 35, 45), bar_rect, border_radius=3)
+        fill_rect = bar_rect.copy()
+        fill_rect.width = int(bar_rect.width * ratio)
+        if fill_rect.width > 0:
+            pg.draw.rect(surface, color, fill_rect, border_radius=3)
+        pg.draw.rect(surface, (210, 210, 220), bar_rect, width=1, border_radius=3)
 
     def on_exit(self):
         self.game_state["health"] = self.player.health
@@ -193,7 +214,7 @@ class GameScreen(Screen):
         for corner_x, corner_y in corners:
             row = int(corner_y // self.tile_size)
             col = int(corner_x // self.tile_size)
-            if self.world.tile_at(row, col) == TILE_WALL:
+            if self._is_collidable_tile(self.world.tile_at(row, col)):
                 return False
 
             door_row = int(self.world.door["row"])
@@ -213,7 +234,7 @@ class GameScreen(Screen):
         for key in self.world.keys:
             if key.get("collected"):
                 continue
-            if not self._is_touching_tile(key["row"], key["col"]):
+            if not self._is_near_tile(center_row, center_col, key["row"], key["col"]):
                 continue
 
             key["collected"] = True
@@ -223,7 +244,7 @@ class GameScreen(Screen):
         for scroll in self.world.scrolls:
             if scroll.get("collected"):
                 continue
-            if not self._is_touching_tile(scroll["row"], scroll["col"]):
+            if not self._is_near_tile(center_row, center_col, scroll["row"], scroll["col"]):
                 continue
 
             scroll["collected"] = True
@@ -249,7 +270,7 @@ class GameScreen(Screen):
         for treasure in self.world.treasures:
             if treasure.get("state") == "open":
                 continue
-            if not self._is_touching_tile(treasure["row"], treasure["col"]):
+            if not self._is_near_tile(center_row, center_col, treasure["row"], treasure["col"]):
                 continue
 
             required_key = treasure["required_key"]
@@ -308,6 +329,14 @@ class GameScreen(Screen):
 
     def _is_near_tile(self, center_row, center_col, row, col):
         return abs(center_row - row) <= 1 and abs(center_col - col) <= 1
+
+    def _is_collidable_tile(self, tile_id):
+        return tile_id in (TILE_WALL, TILE_TREASURE, TILE_BASIC_SCROLL, TILE_KEY, TILE_RARE_SCROLL)
+
+    def _projectile_hits_blocker(self, x, y):
+        row = int(y // self.tile_size)
+        col = int(x // self.tile_size)
+        return self._is_collidable_tile(self.world.tile_at(row, col))
 
     def _is_touching_tile(self, row, col):
         player_rect = self.player.get_collision_rect()

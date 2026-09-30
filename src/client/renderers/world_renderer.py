@@ -37,7 +37,7 @@ class WorldRenderer:
         self.treasure_open_nothing_image = self._load_scaled_image(ITEM_ROOT / "treasure_open_nothing.png")
         self.door_closed_image = self._load_scaled_image(ITEM_ROOT / "door.png")
         self.door_open_image = self._load_scaled_image(ITEM_ROOT / "door open.png")
-        self.wall_light_image = self._load_scaled_image(ITEM_ROOT / "wall_light.png", scale=0.55)
+        self.wall_light_image = self._load_scaled_image(ITEM_ROOT / "wall_light.png", scale=0.7)
 
     def draw(self, surface: pg.Surface, world, camera_x: float, camera_y: float, elapsed: float) -> None:
         self._draw_decorations(surface, world, camera_x, camera_y)
@@ -148,7 +148,7 @@ class WorldRenderer:
             col = int(light["col"])
             x = col * self.tile_size - camera_x + self.tile_size * 0.1
             y = row * self.tile_size - camera_y + self.tile_size * 0.45
-            image = pg.transform.scale(self.wall_light_image, (int(self.tile_size * 0.5), int(self.tile_size * 0.5)))
+            image = pg.transform.scale(self.wall_light_image, (int(self.tile_size * 0.7), int(self.tile_size * 0.7)))
             surface.blit(image, (x, y))
 
     def _draw_monsters(self, surface: pg.Surface, world, camera_x: float, camera_y: float, elapsed: float) -> None:

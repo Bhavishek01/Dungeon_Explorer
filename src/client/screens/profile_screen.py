@@ -64,8 +64,8 @@ class ProfileScreen:
         line_gap = 26
 
         for text in [
-            f"Name: {name}",
-            f"ID: {pid}",
+            f"Explorer Name: {name}",
+            f"id: {pid}",
             f"Class: {config.PLAYER_CLASSES.get(pclass, {}).get('label', pclass)}",
             f"Level: {level}",
         ]:

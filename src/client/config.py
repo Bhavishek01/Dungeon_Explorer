@@ -9,7 +9,7 @@ TILE_SIZE = 48
 SCREEN_WIDTH = 16 * TILE_SIZE   # 768
 SCREEN_HEIGHT = 12 * TILE_SIZE  # 576
 FPS = 60
-WINDOW_TITLE = "Dungeon Quest"
+WINDOW_TITLE = "Dungeon Exploration"
 
 # ---------------- Tile types (mirrors shared/tilemap.py) ----------------
 TILE_WALL = 0
@@ -87,7 +87,7 @@ PLAYER_TRAP_LIFE_DRAIN_PER_SEC = 4
 # Walk/run: Shift+WASD run multiplier (per project plan)
 PLAYER_WALK_SPEED_MULTIPLIER = 1.0
 PLAYER_RUN_SPEED_MULTIPLIER = 1.8
-PLAYER_RUN_STAMINA_DRAIN_PER_SEC = 8
+PLAYER_RUN_STAMINA_DRAIN_PER_SEC = 16
 PLAYER_STAMINA_REGEN_PER_SEC = 4
 
 # ---------------- Per-class stat tables ----------------

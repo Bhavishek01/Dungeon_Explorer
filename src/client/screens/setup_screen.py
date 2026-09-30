@@ -19,18 +19,18 @@ class SetupScreen:
         self.name_input = TextInput(
             (config.SCREEN_WIDTH // 2 - 150, 290, 300, 44),
             font=self.label_font,
-            placeholder="Player name",
+            placeholder="Explorer name",
             on_submit=self._create_player,
         )
         self.create_button = Button(
             (config.SCREEN_WIDTH // 2 - 130, 350, 260, 44),
-            "Create Player",
+            "Create Explorer",
             on_click=lambda: self._create_player(self.name_input.text),
             font=self.label_font,
         )
         self.new_player_button = Button(
             (config.SCREEN_WIDTH // 2 - 130, 410, 260, 44),
-            "New Player",
+            "New Explorer",
             on_click=self._switch_to_create,
             font=self.label_font,
         )
@@ -74,17 +74,17 @@ class SetupScreen:
 
     def draw(self, surface):
         surface.fill(config.COLOR_BG)
-        draw_label(surface, "Dungeon Quest", (config.SCREEN_WIDTH // 2, 100),
+        draw_label(surface, "Dungeon Exploration", (config.SCREEN_WIDTH // 2, 100),
                    font=self.title_font, color=config.COLOR_CYAN, center=True)
 
         if self.mode == "pick":
-            draw_label(surface, "Choose a player profile", (config.SCREEN_WIDTH // 2, 170),
+            draw_label(surface, "Choose an explorer profile", (config.SCREEN_WIDTH // 2, 170),
                        font=self.label_font, color=config.COLOR_WHITE, center=True)
             for button in self.player_buttons:
                 button.draw(surface)
             self.new_player_button.draw(surface)
         else:
-            draw_label(surface, "Create your first player", (config.SCREEN_WIDTH // 2, 200),
+            draw_label(surface, "Create your first explorer", (config.SCREEN_WIDTH // 2, 200),
                        font=self.label_font, color=config.COLOR_WHITE, center=True)
             self.name_input.draw(surface)
             self.create_button.draw(surface)
