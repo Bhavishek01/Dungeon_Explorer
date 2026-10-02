@@ -2,6 +2,7 @@ import sys
 import pygame as pg
 
 import config
+from gameplay.inventory import starter_items
 from ui import Button, TextInput, draw_label
 
 
@@ -123,7 +124,7 @@ class SetupScreen:
         self.game_state["player_id"] = snapshot.get("player_id")
         self.game_state["player_name"] = snapshot.get("player_name")
         self.game_state["player_class"] = snapshot.get("player_class") or config.DEFAULT_CLASS
-        self.game_state["items"] = snapshot.get("items", [])
+        self.game_state["items"] = snapshot.get("items") or starter_items()
         self.game_state["equipped"] = snapshot.get("equipped", [0, 0, 0])
         self.game_state["profile"] = snapshot.get("profile", self.game_state.get("profile", {}))
         self.manager.switch_to(config.SCREEN_MENU)

@@ -2,6 +2,7 @@ import sys
 import pygame as pg
 
 import config
+from gameplay.inventory import starter_items
 from session import ClientSession
 from screens import ScreenManager
 from screens.setup_screen import SetupScreen
@@ -28,7 +29,7 @@ class DungeonQuest:
             "player_id": None,
             "player_name": None,
             "player_class": None,
-            "items": [],
+            "items": starter_items(),
             "equipped": [0, 0, 0],
             "profile": {
                 "level": 1,

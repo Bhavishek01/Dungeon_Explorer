@@ -50,7 +50,26 @@ def label_for_kind(kind: str) -> str:
         "stamina_250": "Stamina +250",
         "coins": "Coins",
         "bow": "Bow",
+        "bow_gun": "Bow Gun",
         "light": "Light",
         "basic_scroll_reward": "Basic Scroll",
     }
     return labels.get(kind, kind.replace("_", " ").title())
+
+
+def starter_items() -> List[Dict[str, object]]:
+    return [
+        {"id": "key", "name": "Treasure Key", "quantity": 5},
+        {"id": "door_key", "name": "Door Key", "quantity": 3},
+        {"id": "health_gradual", "name": "Health +250 Gradual", "quantity": 3},
+        {"id": "stamina_gradual", "name": "Stamina +250 Gradual", "quantity": 3},
+        {"id": "stamina_50", "name": "Stamina +50", "quantity": 3},
+        {"id": "health_50", "name": "Health +50", "quantity": 3},
+        {"id": "health_full", "name": "Health Full", "quantity": 3},
+        {"id": "stamina_full", "name": "Stamina Full", "quantity": 3},
+        {"id": "stamina_250", "name": "Stamina +250", "quantity": 3},
+        {"id": "bow", "name": "Bow", "quantity": 1},
+        {"id": "bow_gun", "name": "Bow Gun", "quantity": 1},
+        {"id": "light", "name": "Light", "quantity": 1},
+        {"id": "basic_scroll_reward", "name": "Basic Scroll", "quantity": 5},
+    ]

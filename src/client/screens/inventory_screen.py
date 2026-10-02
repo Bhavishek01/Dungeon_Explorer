@@ -49,6 +49,7 @@ class InventoryScreen:
             "stamina_250": "stamina +250.png",
             "coins": "coins.png",
             "bow": "bow gun.png",
+            "bow_gun": "bow gun.png",
             "light": "light.png",
             "debuff": "debuff.png",
         }
@@ -174,7 +175,7 @@ class InventoryScreen:
         for item in items:
             if item.get("id") != item_id:
                 continue
-            if item_id in {"bow", "light"} and item_id in self.game_state.get("active_item_effects", []):
+            if item_id in {"bow", "bow_gun", "light"} and item_id in self.game_state.get("active_item_effects", []):
                 return
             item_name = item.get("name", item_id)
             if int(item.get("quantity", 0)) <= 0:
@@ -191,9 +192,7 @@ class InventoryScreen:
                 "stamina_50": {"resource": "stamina", "amount": 50.0, "rate": 50.0},
                 "stamina_full": {"resource": "stamina", "amount": "full"},
             }
-            if item_id in effect_map:
-                pending_effects.append(effect_map[item_id])
-            if item_id in {"bow", "light"}:
+            if item_id in {"bow", "bow_gun", "light"}:
                 self.game_state.setdefault("active_item_effects", []).append(item_id)
             profile = self.game_state.setdefault("profile", {})
             items_used = profile.setdefault("items_used", {})

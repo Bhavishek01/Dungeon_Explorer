@@ -62,6 +62,8 @@ class ProfileScreen:
         level = profile.get("level", 1)
         experience = profile.get("experience", 0)
         experience_required = profile.get("experience_required", config.PLAYER_INITIAL_EXPERIENCE_REQUIRED)
+        total_games = int(profile.get("total_games_played", 0))
+        games_cleared = int(profile.get("games_cleared", 0))
 
         col_x = 60
         y = 90
@@ -72,6 +74,8 @@ class ProfileScreen:
             f"id: {pid}",
             f"Level: {level}",
             f"XP: {experience}/{experience_required}",
+            f"Games Played: {total_games}",
+            f"Games Cleared: {games_cleared}",
         ]:
             draw_label(surface, text, (col_x, y), font=self.body_font, color=config.COLOR_WHITE)
             y += line_gap
@@ -87,6 +91,28 @@ class ProfileScreen:
                 y += 20
         else:
             draw_label(surface, "No data yet.", (col_x + 10, y),
+                       font=self.body_font, color=config.COLOR_GRAY)
+
+        history_x = config.SCREEN_WIDTH // 2 + 20
+        history_y = 90
+        draw_label(surface, "Last Five Games", (history_x, history_y),
+                   font=self.label_font, color=config.COLOR_YELLOW)
+        history_y += line_gap
+        recent_games = profile.get("last_five_games", [])
+        if recent_games:
+            for index, game in enumerate(reversed(recent_games[-5:]), start=1):
+                result = "CLEARED" if game.get("cleared", False) else "LOST"
+                killed = int(game.get("monsters_killed", 0))
+                items = game.get("items", [])
+                item_text = ", ".join(str(item) for item in items) if items else "none"
+                draw_label(surface, f"{index}. {result} | Kills: {killed}",
+                           (history_x, history_y), font=self.body_font, color=config.COLOR_LIGHT_GRAY)
+                history_y += 19
+                draw_label(surface, f"Items: {item_text[:36]}",
+                           (history_x + 12, history_y), font=self.body_font, color=config.COLOR_GRAY)
+                history_y += 24
+        else:
+            draw_label(surface, "No games yet.", (history_x, history_y),
                        font=self.body_font, color=config.COLOR_GRAY)
             y += 20
 

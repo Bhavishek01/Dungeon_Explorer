@@ -96,9 +96,14 @@ class GameScreen(Screen):
 
     def _generate_new_world(self):
         if not self.run_active:
+            profile = self.game_state.setdefault("profile", {})
+            profile["total_games_played"] = int(profile.get("total_games_played", 0)) + 1
+            self.game_state["_run_items"] = []
+            self.game_state["_run_kill_counts"] = {}
+            self.game_state["_run_recorded"] = False
             self.game_state["_run_start_items"] = deepcopy(self.game_state.get("items", []))
             self.game_state["_run_start_equipped"] = deepcopy(self.game_state.get("equipped", [0, 0, 0]))
-            self.game_state["_run_start_profile"] = deepcopy(self.game_state.get("profile", {}))
+            self.game_state["_run_start_profile"] = deepcopy(profile)
             self.run_active = True
         self.reveal_elapsed = 0.0
         self.level_complete = False
@@ -353,11 +358,13 @@ class GameScreen(Screen):
     def _restart_after_death(self):
         self.projectiles.clear()
         self.monster_projectiles.clear()
+        self._record_run_result(False)
         self.client.discard_game_run(self.game_state)
         self.run_active = False
         self._generate_new_world()
 
     def _exit_after_death(self):
+        self._record_run_result(False)
         self.client.discard_game_run(self.game_state)
         self.run_active = False
         self.manager.switch_to(config.SCREEN_MENU)
@@ -365,7 +372,36 @@ class GameScreen(Screen):
     def _next_level(self):
         self.projectiles.clear()
         self.monster_projectiles.clear()
+        self.run_active = False
         self._generate_new_world()
+
+    def _record_run_item(self, item_id):
+        run_items = self.game_state.setdefault("_run_items", [])
+        run_items.append(str(item_id))
+
+    def _record_run_result(self, cleared):
+        if self.game_state.get("_run_recorded", False):
+            return
+
+        profile = self.game_state.setdefault("profile", {})
+        history = profile.setdefault("last_five_games", [])
+        if not isinstance(history, list):
+            history = []
+        kill_counts = self.game_state.get("_run_kill_counts", {})
+        if not isinstance(kill_counts, dict):
+            kill_counts = {}
+        result = {
+            "cleared": bool(cleared),
+            "items": list(self.game_state.get("_run_items", [])),
+            "monsters_killed": sum(int(value) for value in kill_counts.values()),
+            "monster_kills": dict(kill_counts),
+        }
+        history.append(result)
+        profile["last_five_games"] = history[-5:]
+        if cleared:
+            profile["games_cleared"] = int(profile.get("games_cleared", 0)) + 1
+        self.game_state["_run_recorded"] = True
+        self.client.commit_game_state(self.game_state)
 
     def _commit_run_progress(self):
         self.client.clear_temporary_keys(self.game_state)
@@ -485,6 +521,7 @@ class GameScreen(Screen):
             key["collected"] = True
             self.world.set_tile(key["row"], key["col"], TILE_FLOOR)
             add_item(self.game_state.setdefault("items", []), key["kind"], label_for_kind(key["kind"]), 1)
+            self._record_run_item(key["kind"])
 
         for scroll in self.world.scrolls:
             if scroll.get("collected"):
@@ -496,6 +533,7 @@ class GameScreen(Screen):
             self.world.set_tile(scroll["row"], scroll["col"], TILE_FLOOR)
             self._start_scroll_pickup(scroll)
             add_item(self.game_state.setdefault("items", []), scroll["kind"], label_for_kind(scroll["kind"]), 1)
+            self._record_run_item(scroll["kind"])
         self.client.commit_inventory_state(self.game_state)
 
     def _open_door_if_possible(self, center_row, center_col):
@@ -512,6 +550,7 @@ class GameScreen(Screen):
 
         if consume_item(self.game_state["items"], "door_key", 1):
             self.world.door["state"] = "open"
+            self._record_run_result(True)
             self._commit_run_progress()
             self.level_complete = True
 
@@ -536,6 +575,7 @@ class GameScreen(Screen):
                         profile["coins"] = int(profile.get("coins", 0)) + 100
                     else:
                         add_item(self.game_state["items"], reward["id"], reward["name"], int(reward.get("quantity", 1)))
+                    self._record_run_item(reward["id"])
                 reward_image = treasure.get("reward_image")
                 if reward_image:
                     self._start_item_pickup(reward_image, treasure["row"], treasure["col"])
@@ -683,6 +723,9 @@ class GameScreen(Screen):
         return False
 
     def _record_monster_kill(self, monster):
+        kill_counts = self.game_state.setdefault("_run_kill_counts", {})
+        kind = getattr(monster, "kind", "monster")
+        kill_counts[kind] = int(kill_counts.get(kind, 0)) + 1
         profile = self.game_state.setdefault("profile", {})
         profile["level"] = max(1, int(profile.get("level", self.player.level)))
         profile["experience"] = max(0, int(profile.get("experience", self.player.experience)))
@@ -691,7 +734,6 @@ class GameScreen(Screen):
             int(profile.get("experience_required", self.player.experience_required)),
         )
         kills = profile.setdefault("monster_kills", {})
-        kind = getattr(monster, "kind", "monster")
         kills[kind] = int(kills.get(kind, 0)) + 1
         profile["experience"] += getattr(monster, "experience_reward", config.MONSTER_EXPERIENCE.get(kind, 300))
 

@@ -28,6 +28,7 @@ def place_entities(
     spawn: Coordinate,
     reachable: Sequence[Coordinate],
     rng: random.Random,
+    monster_limit: int = 12,
 ) -> Dict[str, object]:
     reachable_list = list(reachable)
     reachable_list.sort(key=lambda coord: abs(coord[0] - spawn[0]) + abs(coord[1] - spawn[1]), reverse=True)
@@ -47,7 +48,17 @@ def place_entities(
     scrolls = place_scrolls(grid, reachable_list, excluded, rng)
     excluded.update((scroll["row"], scroll["col"]) for scroll in scrolls)
 
-    monsters = place_monsters(grid, reachable_list, excluded, rng, spawn, door_key_coord, door_coord, treasures)
+    monsters = place_monsters(
+        grid,
+        reachable_list,
+        excluded,
+        rng,
+        spawn,
+        door_key_coord,
+        door_coord,
+        treasures,
+        monster_limit,
+    )
     wall_lights = place_wall_lights(grid, rng)
     decorations = place_environment_decorations(grid, reachable_list, excluded, rng)
 
@@ -85,8 +96,7 @@ def place_treasures(
     rng.shuffle(candidates)
     treasures: List[Dict[str, object]] = []
     variants = [
-        ("coins", rel_path("items", "coins.png"), {"id": "coins", "name": "Coins", "quantity": 1}),
-        ("bow", rel_path("items", "bow gun.png"), {"id": "bow", "name": "Bow", "quantity": 1}),
+        ("bow_gun", rel_path("items", "bow gun.png"), {"id": "bow_gun", "name": "Bow Gun", "quantity": 1}),
         ("light", rel_path("items", "light.png"), {"id": "light", "name": "Light", "quantity": 1}),
     ]
 
@@ -193,6 +203,7 @@ def place_monsters(
     door_key_coord: Coordinate,
     door_coord: Coordinate,
     treasures: Sequence[Dict[str, object]],
+    monster_limit: int = 12,
 ) -> List[Dict[str, object]]:
     choices = [coord for coord in reachable if coord not in excluded]
     rng.shuffle(choices)
@@ -227,7 +238,7 @@ def place_monsters(
         excluded.add(position)
 
     for index, coord in enumerate(choices):
-        if len(monsters) >= 12:
+        if len(monsters) >= monster_limit:
             break
         if coord in excluded:
             continue

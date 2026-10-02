@@ -6,7 +6,7 @@ from typing import Dict, List, Tuple
 from .bfs import evaluate, find_spawn_tile, reachable_tiles, repair_connectivity
 from .cellular_automata import smooth
 from .constants import DEFAULT_GENERATIONS, DEFAULT_MAP_HEIGHT, DEFAULT_MAP_WIDTH, DEFAULT_POPULATION_SIZE
-from .decision_tree import choose_best_candidate
+from .decision_tree import choose_best_candidate, monster_limit_for_profile
 from .genetic_algorithm import crossover, generate_population, mutate
 from .layout import carve_nine_sector_maze
 from .placement import place_entities
@@ -42,7 +42,13 @@ def generate_map(
     tiles = [row[:] for row in best["grid"]]
     spawn = find_spawn_tile(tiles)
     reachable = reachable_tiles(tiles, spawn)
-    entities = place_entities(tiles, spawn, sorted(reachable), rng)
+    entities = place_entities(
+        tiles,
+        spawn,
+        sorted(reachable),
+        rng,
+        monster_limit=monster_limit_for_profile(profile),
+    )
     active_monsters = [monster for monster in entities["monsters"] if monster.get("spawn_at") is None]
     spawn_schedule = [
         {"spawn_at": monster["spawn_at"], "monster": monster}
