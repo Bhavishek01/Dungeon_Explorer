@@ -28,7 +28,7 @@
         {
           "id": "stamina_250",
           "name": "Stamina +250",
-          "quantity": 2
+          "quantity": 1
         },
         {
           "id": "bow",
@@ -43,11 +43,16 @@
         {
           "id": "health_gradual",
           "name": "Health +250 Gradual",
-          "quantity": 2
+          "quantity": 1
         },
         {
           "id": "health_full",
           "name": "Health Full",
+          "quantity": 1
+        },
+        {
+          "id": "health_50",
+          "name": "Health +50",
           "quantity": 1
         }
       ],

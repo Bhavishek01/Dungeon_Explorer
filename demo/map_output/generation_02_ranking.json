@@ -1,0 +1,110 @@
+[
+  {
+    "candidate": 1,
+    "metrics": {
+      "open_ratio": 0.3472031702484377,
+      "reachable_count": 2278.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2278.0
+    },
+    "score": 7.599674592287761
+  },
+  {
+    "candidate": 2,
+    "metrics": {
+      "open_ratio": 0.3458314281359549,
+      "reachable_count": 2269.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2269.0
+    },
+    "score": 7.588745237006554
+  },
+  {
+    "candidate": 3,
+    "metrics": {
+      "open_ratio": 0.33836305441243714,
+      "reachable_count": 2220.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2220.0
+    },
+    "score": 7.529240969364426
+  },
+  {
+    "candidate": 4,
+    "metrics": {
+      "open_ratio": 0.32708428593202254,
+      "reachable_count": 2146.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2146.0
+    },
+    "score": 7.4393773814967235
+  },
+  {
+    "candidate": 5,
+    "metrics": {
+      "open_ratio": 0.32373113854595337,
+      "reachable_count": 2124.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2124.0
+    },
+    "score": 7.412661179698216
+  },
+  {
+    "candidate": 6,
+    "metrics": {
+      "open_ratio": 0.3206828227404359,
+      "reachable_count": 2104.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2104.0
+    },
+    "score": 7.3883737235177565
+  },
+  {
+    "candidate": 7,
+    "metrics": {
+      "open_ratio": 0.3107757963725042,
+      "reachable_count": 2039.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2039.0
+    },
+    "score": 7.309439490931261
+  },
+  {
+    "candidate": 8,
+    "metrics": {
+      "open_ratio": 0.3055936595031245,
+      "reachable_count": 2005.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 2005.0
+    },
+    "score": 7.2681508154244785
+  },
+  {
+    "candidate": 9,
+    "metrics": {
+      "open_ratio": 0.29827770156988265,
+      "reachable_count": 1957.0,
+      "reachable_ratio": 1.0,
+      "start_col": 40.0,
+      "start_row": 40.0,
+      "walkable_count": 1957.0
+    },
+    "score": 7.209860920591374
+  }
+]

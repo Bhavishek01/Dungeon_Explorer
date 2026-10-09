@@ -1,0 +1,13 @@
+{
+  "candidate": 5,
+  "generation": 4,
+  "metrics": {
+    "open_ratio": 0.32312147538484987,
+    "reachable_count": 2120.0,
+    "reachable_ratio": 1.0,
+    "start_col": 40.0,
+    "start_row": 40.0,
+    "walkable_count": 2120.0
+  },
+  "score": 7.407803688462125
+}

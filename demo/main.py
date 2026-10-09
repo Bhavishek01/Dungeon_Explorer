@@ -33,11 +33,13 @@ TILES_ROOT = PROJECT_ROOT / "src" / "shared" / "tiles"
 ENV_ROOT = TILES_ROOT / "environment"
 ITEM_ROOT = TILES_ROOT / "items"
 MONSTER_ROOT = TILES_ROOT / "monster"
+OUTPUT_DIR = Path(__file__).with_name("map_output")
 
 
 def main() -> None:
 	seed = secrets.randbits(64)
 	rng = random.Random(seed)
+	OUTPUT_DIR.mkdir(exist_ok=True)
 	profile = {
 		"level": 9,
 		"monster_kills": {"slime": 5, "bat": 2},
@@ -46,28 +48,60 @@ def main() -> None:
 
 	population = generate_population(MAP_WIDTH, MAP_HEIGHT, population_size=POPULATION_SIZE, rng=rng)
 	candidates: List[Dict[str, object]] = []
+	for index, grid in enumerate(population, start=1):
+		write_grid(OUTPUT_DIR / f"initial_candidate_{index:02d}.txt", grid)
 
 	for generation in range(GENERATIONS):
 		scored_population: List[Dict[str, object]] = []
 		for index, grid in enumerate(population):
 			maze_grid = carve_nine_sector_maze(grid, rng)
+			write_grid(OUTPUT_DIR / f"generation_{generation + 1:02d}_candidate_{index + 1:02d}_carved.txt", maze_grid)
 			smoothed = smooth(maze_grid, steps=1 + generation // 2)
+			write_grid(OUTPUT_DIR / f"generation_{generation + 1:02d}_candidate_{index + 1:02d}_smoothed.txt", smoothed)
 			repaired = repair_connectivity(smoothed)
+			write_grid(OUTPUT_DIR / f"generation_{generation + 1:02d}_candidate_{index + 1:02d}_repaired.txt", repaired)
 			metrics = evaluate(repaired)
-			scored_population.append({"grid": repaired, "metrics": metrics})
+			score = score_key(metrics, profile)
+			write_json(
+				OUTPUT_DIR / f"generation_{generation + 1:02d}_candidate_{index + 1:02d}_metrics.json",
+				{"generation": generation + 1, "candidate": index + 1, "metrics": metrics, "score": score},
+			)
+			scored_population.append({"grid": repaired, "metrics": metrics, "score": score})
 
 		candidates.extend(scored_population)
 		scored_population.sort(key=lambda candidate: score_key(candidate["metrics"], profile), reverse=True)
+		write_json(
+			OUTPUT_DIR / f"generation_{generation + 1:02d}_ranking.json",
+			[
+				{"candidate": index + 1, "metrics": candidate["metrics"], "score": candidate["score"]}
+				for index, candidate in enumerate(scored_population)
+			],
+		)
 		population = breed_next_population(scored_population, rng, generation)
+		for index, grid in enumerate(population, start=1):
+			write_grid(OUTPUT_DIR / f"generation_{generation + 1:02d}_next_candidate_{index:02d}.txt", grid)
 
 	best = choose_best_candidate(candidates, profile)
 	grid = [row[:] for row in best["grid"]]
+	write_grid(OUTPUT_DIR / "selected_grid.txt", grid)
 	spawn = find_spawn_tile(grid)
 	distances = distance_map(grid, spawn)
 
 	entities = place_entities(grid, spawn, distances, rng)
-	result_path = Path(__file__).with_name("result.txt")
-	write_result(result_path, seed, grid, best["metrics"], spawn, entities)
+	write_json(OUTPUT_DIR / "final_entities.json", entities)
+	write_json(
+		OUTPUT_DIR / "generation_summary.json",
+		{
+			"seed": seed,
+			"size": [MAP_WIDTH, MAP_HEIGHT],
+			"population_size": POPULATION_SIZE,
+			"generations": GENERATIONS,
+			"selected_metrics": best["metrics"],
+			"spawn": spawn,
+		},
+	)
+	write_result(OUTPUT_DIR / "final_result.txt", seed, grid, best["metrics"], spawn, entities)
+	write_result(Path(__file__).with_name("result.txt"), seed, grid, best["metrics"], spawn, entities)
 
 
 def carve_nine_sector_maze(grid: Sequence[Sequence[int]], rng: random.Random) -> List[List[int]]:
@@ -463,6 +497,17 @@ def monster_frames(monster_name: str) -> List[str]:
 
 def rel_path(folder: str, filename: str) -> str:
 	return (TILES_ROOT / folder / filename).as_posix()
+
+
+def write_grid(path: Path, grid: Sequence[Sequence[int]]) -> None:
+	path.write_text(
+		"\n".join(" ".join(str(tile) for tile in row) for row in grid) + "\n",
+		encoding="utf-8",
+	)
+
+
+def write_json(path: Path, value: object) -> None:
+	path.write_text(json.dumps(value, indent=2, sort_keys=True) + "\n", encoding="utf-8")
 
 
 def write_result(
