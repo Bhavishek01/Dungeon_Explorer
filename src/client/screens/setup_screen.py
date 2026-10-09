@@ -4,6 +4,7 @@ import pygame as pg
 import config
 from gameplay.inventory import starter_items
 from ui import Button, TextInput, draw_label
+from screens.menu_screen import MenuScreen
 
 
 class SetupScreen:
@@ -11,6 +12,7 @@ class SetupScreen:
         self.manager = manager
         self.client = client
         self.game_state = game_state
+        self.menu_background = MenuScreen(manager, client, game_state)
 
         self.title_font = pg.font.SysFont(config.FONT_NAME, config.FONT_SIZE_TITLE, bold=True)
         self.label_font = pg.font.SysFont(config.FONT_NAME, config.FONT_SIZE_MEDIUM)
@@ -70,11 +72,12 @@ class SetupScreen:
             self.create_button.handle_event(event)
 
     def update(self, dt):
+        self.menu_background.background_elapsed += dt
         if self.mode == "create":
             self.name_input.update(dt)
 
     def draw(self, surface):
-        surface.fill(config.COLOR_BG)
+        self.menu_background._draw_background(surface)
         draw_label(surface, "Dungeon Exploration", (config.SCREEN_WIDTH // 2, 100),
                    font=self.title_font, color=config.COLOR_CYAN, center=True)
 
