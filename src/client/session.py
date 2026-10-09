@@ -7,6 +7,7 @@ from copy import deepcopy
 from pathlib import Path
 
 import config
+from gameplay.inventory import starter_items
 
 
 class ClientSession:
@@ -30,8 +31,74 @@ class ClientSession:
         return True
 
     def disconnect(self):
+        self.clear_temporary_keys()
         self._save_store()
         self.connected = False
+
+    def clear_temporary_keys(self, game_state=None):
+        if game_state is not None:
+            game_state["items"] = [
+                item for item in game_state.get("items", [])
+                if not str(item.get("id", "")).endswith("key")
+                and not str(item.get("id", "")).startswith("treasure_key_")
+            ]
+        if self._active_player is not None:
+            self._active_player["items"] = [
+                item for item in self._active_player.get("items", [])
+                if not str(item.get("id", "")).endswith("key")
+                and not str(item.get("id", "")).startswith("treasure_key_")
+            ]
+
+    def discard_game_run(self, game_state):
+        current_profile = deepcopy(game_state.get("profile", {}))
+        if game_state.get("_run_started", True) and not game_state.get("_run_recorded", False):
+            history = current_profile.setdefault("last_five_games", [])
+            if not isinstance(history, list):
+                history = []
+            kill_counts = game_state.get("_run_kill_counts", {})
+            if not isinstance(kill_counts, dict):
+                kill_counts = {}
+            history.append(
+                {
+                    "cleared": False,
+                    "items": list(game_state.get("_run_items", [])),
+                    "monsters_killed": sum(int(value) for value in kill_counts.values()),
+                    "monster_kills": dict(kill_counts),
+                }
+            )
+            current_profile["last_five_games"] = history[-5:]
+            game_state["profile"] = current_profile
+            game_state["_run_recorded"] = True
+        baseline_profile = deepcopy(game_state.get("_run_start_profile", current_profile))
+        baseline_profile["items_used"] = current_profile.get("items_used", {})
+        baseline_profile["coins"] = current_profile.get("coins", baseline_profile.get("coins", 0))
+        for field in ("total_games_played", "games_cleared", "last_five_games"):
+            if field in current_profile:
+                baseline_profile[field] = deepcopy(current_profile[field])
+        game_state["profile"] = baseline_profile
+        game_state["active_item_effects"] = []
+        self.clear_temporary_keys(game_state)
+        self.commit_inventory_state(game_state)
+
+    def commit_inventory_state(self, game_state):
+        if self._active_player is None:
+            return
+
+        persistent_items = [
+            deepcopy(item) for item in game_state.get("items", [])
+            if not str(item.get("id", "")).endswith("key")
+            and not str(item.get("id", "")).startswith("treasure_key_")
+        ]
+        self._active_player["items"] = persistent_items
+        stored_profile = deepcopy(self._active_player.get("profile", {}))
+        run_profile = game_state.get("profile", {})
+        stored_profile["items_used"] = deepcopy(run_profile.get("items_used", stored_profile.get("items_used", {})))
+        stored_profile["coins"] = int(run_profile.get("coins", stored_profile.get("coins", 0)))
+        for field in ("total_games_played", "games_cleared", "last_five_games"):
+            if field in run_profile:
+                stored_profile[field] = deepcopy(run_profile[field])
+        self._active_player["profile"] = stored_profile
+        self._save_store()
 
     def send(self, message: str):
         tag, _, payload = message.partition("|")
@@ -131,9 +198,19 @@ class ClientSession:
                 "player_id": self.player_id,
                 "player_name": self.player_name,
                 "player_class": self.player_class,
-                "items": [],
+                "items": starter_items(),
                 "equipped": [0, 0, 0],
-                "profile": {"level": 1, "monster_kills": {}, "skill_usage": {}},
+                "profile": {
+                    "level": 1,
+                    "experience": 0,
+                    "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
+                    "monster_kills": {},
+                    "items_used": {},
+                    "coins": 0,
+                    "total_games_played": 0,
+                    "games_cleared": 0,
+                    "last_five_games": [],
+                },
             }
 
         return {
@@ -172,9 +249,19 @@ class ClientSession:
             "player_id": player_id,
             "player_name": player_name,
             "player_class": None,
-            "items": [],
+            "items": starter_items(),
             "equipped": [0, 0, 0],
-            "profile": {"level": 1, "monster_kills": {}, "skill_usage": {}},
+            "profile": {
+                "level": 1,
+                "experience": 0,
+                "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
+                "monster_kills": {},
+                "items_used": {},
+                "coins": 0,
+                "total_games_played": 0,
+                "games_cleared": 0,
+                "last_five_games": [],
+            },
         }
 
     def _set_active_player(self, player):

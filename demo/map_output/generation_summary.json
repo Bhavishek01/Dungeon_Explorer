@@ -1,0 +1,21 @@
+{
+  "generations": 4,
+  "population_size": 9,
+  "seed": 16635120653195865399,
+  "selected_metrics": {
+    "open_ratio": 0.36381649138850786,
+    "reachable_count": 2387.0,
+    "reachable_ratio": 1.0,
+    "start_col": 40.0,
+    "start_row": 40.0,
+    "walkable_count": 2387.0
+  },
+  "size": [
+    81,
+    81
+  ],
+  "spawn": [
+    40,
+    40
+  ]
+}

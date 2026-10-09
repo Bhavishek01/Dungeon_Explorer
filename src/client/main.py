@@ -2,12 +2,14 @@ import sys
 import pygame as pg
 
 import config
+from gameplay.inventory import starter_items
 from session import ClientSession
 from screens import ScreenManager
 from screens.setup_screen import SetupScreen
 from screens.menu_screen import MenuScreen
 from screens.game_screen import GameScreen
 from screens.inventory_screen import InventoryScreen
+from screens.menu_inventory_screen import MenuInventoryScreen
 from screens.profile_screen import ProfileScreen
 from screens.pause_screen import PauseScreen
 
@@ -27,12 +29,16 @@ class DungeonQuest:
             "player_id": None,
             "player_name": None,
             "player_class": None,
-            "items": [],
+            "items": starter_items(),
             "equipped": [0, 0, 0],
             "profile": {
                 "level": 1,
+                "experience": 0,
+                "experience_required": config.PLAYER_INITIAL_EXPERIENCE_REQUIRED,
                 "monster_kills": {},
-                "skill_usage": {},
+                "items_used": {},
+                "coins": 0,
+                "items_used": {},
             },
         }
 
@@ -41,6 +47,7 @@ class DungeonQuest:
         self.manager.register(config.SCREEN_MENU, MenuScreen)
         self.manager.register(config.SCREEN_GAME, GameScreen)
         self.manager.register(config.SCREEN_INVENTORY, InventoryScreen)
+        self.manager.register(config.SCREEN_MENU_INVENTORY, MenuInventoryScreen)
         self.manager.register(config.SCREEN_PROFILE, ProfileScreen)
         self.manager.register(config.SCREEN_PAUSE, PauseScreen)
 
