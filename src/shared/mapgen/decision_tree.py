@@ -42,7 +42,7 @@ def monster_limit_for_profile(profile: Dict[str, object]) -> int:
     """Return the next map's monster limit from recent association rules."""
     history = profile.get("last_five_games", [])
     if not isinstance(history, list) or not history:
-        return 12
+        return 16
 
     rules = mine_recent_rules(profile)
     loss_streak = 0
@@ -51,13 +51,18 @@ def monster_limit_for_profile(profile: Dict[str, object]) -> int:
             break
         loss_streak += 1
 
-    multiplier = 1.0
+    monster_limit = 16
     if loss_streak >= 2 and rules.get("low_kill_loss", 0.0) >= 0.5:
-        multiplier = 1.35 + min(0.2, (loss_streak - 2) * 0.05)
+        if loss_streak >= 4:
+            monster_limit = 12
+        elif loss_streak == 3:
+            monster_limit = 13
+        else:
+            monster_limit = 14
     elif rules.get("high_kill_clear", 0.0) >= 0.5:
-        multiplier = 1.15
+        monster_limit = 18
 
-    return max(1, min(18, round(12 * multiplier)))
+    return max(1, min(18, monster_limit))
 
 
 def score_candidate(metrics: Dict[str, float], profile: Dict[str, object]) -> float:

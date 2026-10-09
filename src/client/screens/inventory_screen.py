@@ -192,6 +192,9 @@ class InventoryScreen:
                 "stamina_50": {"resource": "stamina", "amount": 50.0, "rate": 50.0},
                 "stamina_full": {"resource": "stamina", "amount": "full"},
             }
+            effect = effect_map.get(item_id)
+            if effect is not None:
+                pending_effects.append(effect.copy())
             if item_id in {"bow", "bow_gun", "light"}:
                 self.game_state.setdefault("active_item_effects", []).append(item_id)
             profile = self.game_state.setdefault("profile", {})

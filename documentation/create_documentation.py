@@ -275,7 +275,7 @@ def build_ppt():
 
     slide = prs.slides.add_slide(blank)
     slide.background.fill.solid(); slide.background.fill.fore_color.rgb = PALE
-    add_text(slide, "Dungeon Exploration", 0.8, 1.55, 11.8, 0.9, size=42, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
+    add_text(slide, "Dungeon Quest", 0.8, 1.55, 11.8, 0.9, size=42, color=NAVY, bold=True, align=PP_ALIGN.CENTER)
     add_text(slide, "Procedural action-adventure game", 0.8, 2.55, 11.8, 0.5, size=22, color=TEAL, align=PP_ALIGN.CENTER)
     add_text(slide, "Project presentation | Python + Pygame + algorithmic AI", 0.8, 5.75, 11.8, 0.4, size=15, color=INK, align=PP_ALIGN.CENTER)
 
@@ -302,7 +302,7 @@ def build_ppt():
     add_text(slide, "Default = 12 monsters. Repeated low-kill losses can increase the limit up to 18; repeated high-kill clears increase it modestly.", 1.0, 5.1, 11.3, 0.7, size=18, color=INK, align=PP_ALIGN.CENTER)
 
     slide = prs.slides.add_slide(blank); add_title(slide, "Objective and entity placement", "Functional content is placed after the map is proven playable")
-    add_bullets(slide, ["Door key and door use farthest reachable tiles to create exploration goals.", "Treasures receive randomized rewards: coins, bow, or light.", "Keys are separated from treasure locations.", "Monsters guard treasure and appear through a spawn schedule.", "Lights, water, lava, and decorations add environmental identity."])
+    add_bullets(slide, ["Door key and door use farthest reachable tiles to create exploration goals.", "Treasures receive randomized Bow Gun or Light rewards.", "Keys are separated from treasure locations.", "Monsters guard treasure and appear through a spawn schedule.", "Lights, water, lava, and decorations add environmental identity."])
 
     slide = prs.slides.add_slide(blank); add_title(slide, "Gameplay loop", "Real-time control inside the generated grid")
     add_flow(slide, ["Input", "Collision", "Terrain", "Combat", "Items", "Outcome"] , y=2.5)
@@ -317,7 +317,7 @@ def build_ppt():
     slide = prs.slides.add_slide(blank); add_title(slide, "Conclusion", "A compact game with a strong algorithmic core")
     add_bullets(slide, ["The game combines a readable player loop with fresh procedural worlds.", "The AI is explainable, testable, and directly connected to gameplay variety.", "The architecture leaves room for stronger monster behavior, more objectives, and automated tests.", "The current implementation is local single-player; multiplayer and ML are future possibilities, not present features."])
 
-    slide = prs.slides.add_slide(blank); add_title(slide, "Thank you", "Dungeon Exploration")
+    slide = prs.slides.add_slide(blank); add_title(slide, "Thank you", "Dungeon Quest")
     add_text(slide, "Questions?", 0.8, 2.45, 11.8, 0.8, size=38, color=TEAL, bold=True, align=PP_ALIGN.CENTER)
     add_text(slide, "The key takeaway: every run is generated, checked, and tuned before the player enters it.", 1.2, 4.0, 11.0, 0.7, size=21, color=NAVY, align=PP_ALIGN.CENTER)
 

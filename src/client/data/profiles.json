@@ -6,6 +6,46 @@
       "player_class": null,
       "items": [
         {
+          "id": "bow_gun",
+          "name": "Bow Gun",
+          "quantity": 1
+        },
+        {
+          "id": "stamina_gradual",
+          "name": "Stamina +250 Gradual",
+          "quantity": 1
+        },
+        {
+          "id": "stamina_50",
+          "name": "Stamina +50",
+          "quantity": 1
+        },
+        {
+          "id": "stamina_full",
+          "name": "Stamina Full",
+          "quantity": 1
+        },
+        {
+          "id": "stamina_250",
+          "name": "Stamina +250",
+          "quantity": 2
+        },
+        {
+          "id": "bow",
+          "name": "Bow",
+          "quantity": 1
+        },
+        {
+          "id": "light",
+          "name": "Light",
+          "quantity": 1
+        },
+        {
+          "id": "health_gradual",
+          "name": "Health +250 Gradual",
+          "quantity": 2
+        },
+        {
           "id": "health_full",
           "name": "Health Full",
           "quantity": 1
@@ -19,41 +59,37 @@
       "profile": {
         "level": 6,
         "monster_kills": {
-          "monster2": 14,
-          "monster1": 33,
+          "monster2": 15,
+          "monster1": 36,
           "monster3": 9
         },
         "skill_usage": {},
-        "experience": 2793,
+        "experience": 4193,
         "experience_required": 8966,
         "items_used": {
           "Wall Light": 1,
           "Nothing Bottle": 1,
           "Coins +100": 1,
-          "Health Full": 13,
-          "Stamina +250": 13,
-          "Stamina +250 Gradual": 18,
-          "Health +250 Gradual": 10,
-          "Health +50": 10,
-          "Stamina Full": 16,
-          "Light": 6,
-          "Stamina 50": 10,
-          "Bow": 5,
-          "Treasure Key": 1
+          "Health Full": 25,
+          "Stamina +250": 26,
+          "Stamina +250 Gradual": 32,
+          "Health +250 Gradual": 25,
+          "Health +50": 26,
+          "Stamina Full": 31,
+          "Light": 12,
+          "Stamina 50": 12,
+          "Bow": 11,
+          "Treasure Key": 14,
+          "Bow Gun": 3,
+          "Basic Scroll": 15,
+          "Stamina +50": 12,
+          "Door Key": 6
         },
         "coins": 800,
-        "total_games_played": 17,
+        "total_games_played": 30,
         "last_five_games": [
           {
             "cleared": false,
-            "items": [
-              "health_50"
-            ],
-            "monsters_killed": 0,
-            "monster_kills": {}
-          },
-          {
-            "cleared": false,
             "items": [],
             "monsters_killed": 0,
             "monster_kills": {}
@@ -73,13 +109,30 @@
           {
             "cleared": false,
             "items": [
+              "stamina_full",
+              "health_full",
               "key",
-              "light"
+              "bow_gun",
+              "key",
+              "stamina_gradual"
             ],
-            "monsters_killed": 5,
+            "monsters_killed": 4,
             "monster_kills": {
-              "monster1": 4,
+              "monster1": 3,
               "monster2": 1
+            }
+          },
+          {
+            "cleared": false,
+            "items": [
+              "stamina_50",
+              "stamina_50",
+              "stamina_gradual",
+              "key"
+            ],
+            "monsters_killed": 2,
+            "monster_kills": {
+              "monster1": 2
             }
           }
         ]
